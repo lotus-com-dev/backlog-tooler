@@ -15,6 +15,8 @@ interface CommentItem extends HTMLLIElement {
 }
 
 let sortButtonElement: HTMLElement | null = null;
+let currentUrl = window.location.href;
+let navigationObserver: MutationObserver | null = null;
 
 async function isExtensionEnabled(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -28,7 +30,7 @@ async function isExtensionEnabled(): Promise<boolean> {
   });
 }
 
-const SortButton: React.FC<{
+export const SortButton: React.FC<{
   onToggle: () => void;
   isAscending: boolean;
 }> = ({ onToggle, isAscending }) => {
@@ -47,13 +49,62 @@ const SortButton: React.FC<{
   );
 };
 
+function cleanupSortButton(): void {
+  if (sortButtonElement) {
+    sortButtonElement.remove();
+    sortButtonElement = null;
+  }
+}
+
+function detectURLChange(): void {
+  const newUrl = window.location.href;
+  if (currentUrl !== newUrl) {
+    currentUrl = newUrl;
+    cleanupSortButton();
+    initializeSortButton();
+  }
+}
+
+function startNavigationDetection(): void {
+  // Listen for popstate events (browser back/forward)
+  window.addEventListener('popstate', detectURLChange);
+  
+  // Periodically check for URL changes (for programmatic navigation)
+  setInterval(detectURLChange, 1000);
+  
+  // Use MutationObserver to detect DOM changes that indicate new page content
+  navigationObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList') {
+        const hasCommentList = document.querySelector(DOM_SELECTORS.COMMENT_LIST);
+        const hasFilterNav = document.querySelector(DOM_SELECTORS.FILTER_NAV);
+        const hasExistingButton = document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON);
+        
+        // If we have the required elements but no button, reinitialize
+        if (hasCommentList && hasFilterNav && !hasExistingButton) {
+          detectURLChange();
+          break;
+        }
+      }
+    }
+  });
+  
+  // Observe changes to the document body
+  navigationObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
 async function initializeSortButton(): Promise<void> {
   const enabled = await isExtensionEnabled();
   if (!enabled) {
-    if (sortButtonElement) {
-      sortButtonElement.remove();
-      sortButtonElement = null;
-    }
+    cleanupSortButton();
+    return;
+  }
+  
+  // Don't reinitialize if button already exists
+  if (document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON)) {
     return;
   }
   
@@ -141,10 +192,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     if (request.enabled) {
       initializeSortButton();
     } else {
-      if (sortButtonElement) {
-        sortButtonElement.remove();
-        sortButtonElement = null;
-      }
+      cleanupSortButton();
     }
     sendResponse({ success: true });
     return true;
@@ -152,5 +200,6 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   return false;
 });
 
-// Initialize on page load
+// Initialize on page load and start navigation detection
 initializeSortButton();
+startNavigationDetection();

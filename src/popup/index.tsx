@@ -33,13 +33,14 @@ async function setEnabled(enabled: boolean): Promise<void> {
           action: MESSAGE_ACTIONS.TOGGLE_EXTENSION, 
           enabled 
         });
-      } catch (error) {
+      } catch {
+        // Ignore errors for inactive tabs
       }
     }
   }
 }
 
-const PopupComponent: React.FC = () => {
+export const PopupComponent: React.FC = () => {
   const [enabled, setEnabledState] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -48,7 +49,8 @@ const PopupComponent: React.FC = () => {
       try {
         const data = await getStorageData();
         setEnabledState(data.enabled);
-      } catch (error) {
+      } catch {
+        // Use default value on error
       } finally {
         setLoading(false);
       }
@@ -63,7 +65,7 @@ const PopupComponent: React.FC = () => {
     
     try {
       await setEnabled(newEnabled);
-    } catch (error) {
+    } catch {
       setEnabledState(!newEnabled);
     }
   };
