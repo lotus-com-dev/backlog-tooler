@@ -8,6 +8,9 @@ Backlogの課題ページにコメントのソート切り替えボタンを追�
 - 現在の並び順を自動判別し、適切なボタンラベルを表示
 - ワンクリックでコメントの並び順を切り替え可能
 - 過去のコメントがある場合は自動的に展開
+- 拡張機能のオン/オフ切り替え機能（ポップアップUI）
+- 設定の永続保存（Chrome Storage API）
+- リロード不要で即座に反映される動的な有効/無効切り替え
 - Chrome、Microsoft Edgeなど、Chromiumベースのブラウザで動作
 
 ## 開発環境のセットアップ
@@ -63,21 +66,36 @@ npm run clean
 
 ## 使い方
 
+### コメントソート機能
+
 1. 拡張機能をインストール後、Backlogの課題ページ（`/view/`を含むURL）にアクセスします
 
 2. ページ上部のフィルターナビゲーションエリアに「古い順で表示」または「新しい順で表示」ボタンが自動的に追加されます
 
 3. ボタンをクリックすることで、コメントの並び順を切り替えることができます
 
+### 拡張機能のオン/オフ切り替え
+
+1. ブラウザのツールバーにある拡張機能アイコンをクリックします
+
+2. ポップアップウィンドウが開き、トグルスイッチが表示されます
+
+3. トグルスイッチをクリックして拡張機能の有効/無効を切り替えます
+   - 有効時：Backlogページにソートボタンが表示されます
+   - 無効時：ソートボタンが非表示になります
+
+4. 設定は自動的に保存され、ページのリロードは不要です
+
 ## プロジェクト構成
 
 ```
 backlog-comment-sorter/
 ├── src/
-│   └── sort-comments.ts    # TypeScriptソースコード
-├── dist/                    # ビルド成果物（gitignore対象）
-│   ├── sort-comments.js    # コンパイルされたJavaScript
-│   └── sort-comments.js.map # ソースマップ
+│   ├── sort-comments.ts    # コメントソート機能のメインスクリプト
+│   ├── popup.html          # ポップアップUIのHTML
+│   ├── popup.ts            # ポップアップUIのロジック
+│   ├── popup.css           # ポップアップUIのスタイル
+│   └── background.ts       # バックグラウンドサービスワーカー
 ├── manifest.json            # Chrome拡張機能マニフェスト
 ├── tsconfig.json           # TypeScript設定
 ├── package.json            # プロジェクト設定と依存関係
@@ -89,6 +107,8 @@ backlog-comment-sorter/
 
 - **TypeScript**: 型安全性を確保したJavaScript開発
 - **Chrome Extension Manifest V3**: 最新の拡張機能仕様に準拠
+- **Chrome Storage API**: 拡張機能の設定を永続的に保存
+- **Service Worker**: バックグラウンドでの状態管理
 - **DOM操作**: ネイティブのDOM APIを使用した軽量な実装
 
 ## 対応サイト

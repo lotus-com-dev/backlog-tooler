@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backlog Comment Sorter</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <h1>Backlog Comment Sorter</h1>
+        
+        <div class="toggle-section">
+            <label class="toggle-label" for="enable-toggle">
+                <span>拡張機能を有効にする</span>
+                <div class="toggle-switch">
+                    <input type="checkbox" id="enable-toggle">
+                    <span class="slider"></span>
+                </div>
+            </label>
+        </div>
+        
+        <div class="status-section">
+            <p id="status-text" class="status-text"></p>
+        </div>
+        
+        <div class="info-section">
+            <p class="info-text">
+                有効にすると、Backlogの課題ページに<br>
+                コメントソートボタンが追加されます。
+            </p>
+        </div>
+    </div>
+    
+    <script src="popup.js"></script>
+</body>
+</html>

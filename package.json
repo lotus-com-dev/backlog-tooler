@@ -3,9 +3,10 @@
   "version": "2.0.0",
   "description": "Backlog comment sorter Chrome extension",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run copy-assets",
     "watch": "tsc --watch",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "copy-assets": "cp src/*.html src/*.css dist/ 2>/dev/null || true"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.260",

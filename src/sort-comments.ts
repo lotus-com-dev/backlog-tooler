@@ -4,7 +4,30 @@ interface CommentItem extends HTMLLIElement {
 
 type SortOrder = 'asc' | 'desc';
 
-function initializeSortButton(): void {
+let sortButtonElement: HTMLElement | null = null;
+
+async function isExtensionEnabled(): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'getEnabled' }, (response) => {
+      if (chrome.runtime.lastError) {
+        resolve(true);
+      } else {
+        resolve(response?.enabled ?? true);
+      }
+    });
+  });
+}
+
+async function initializeSortButton(): Promise<void> {
+  const enabled = await isExtensionEnabled();
+  if (!enabled) {
+    if (sortButtonElement) {
+      sortButtonElement.remove();
+      sortButtonElement = null;
+    }
+    return;
+  }
+  
   const targetSelector = 'dl.filter-nav';
   
   const observer = setInterval(() => {
@@ -38,6 +61,7 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     </button>
   `;
   filterNav.appendChild(newDd);
+  sortButtonElement = newDd;
   
   const sortToggleButton = document.getElementById('sort-toggle-button') as HTMLButtonElement;
   
@@ -85,4 +109,26 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
   });
 }
 
+// Listen for toggle messages
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
+  console.log('Received message:', request);
+  
+  if (request.action === 'toggleExtension') {
+    if (request.enabled) {
+      console.log('Enabling extension - adding sort button');
+      initializeSortButton();
+    } else {
+      console.log('Disabling extension - removing sort button');
+      if (sortButtonElement) {
+        sortButtonElement.remove();
+        sortButtonElement = null;
+      }
+    }
+    sendResponse({ success: true });
+    return true; // Keep the message channel open for async response
+  }
+  return false;
+});
+
+// Initialize on page load
 initializeSortButton();
