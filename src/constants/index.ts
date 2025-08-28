@@ -31,7 +31,6 @@ export const DOM_SELECTORS = {
   FILTER_NAV: 'dl.filter-nav',
   COMMENT_LIST: 'ul.comment-list__items',
   COMMENT_ITEM: 'li.comment-item',
-  EXPAND_BUTTON: 'button[aria-label="過去のコメントを展開"]',
   TIME_ELEMENT: '.user-icon-set__sub-line a',
   BUTTON_TEXT: '.filter-nav__text'
 } as const;

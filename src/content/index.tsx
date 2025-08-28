@@ -126,10 +126,6 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
   const commentList = document.querySelector<HTMLUListElement>(DOM_SELECTORS.COMMENT_LIST);
   if (!commentList) return;
   
-  const expandButton = document.querySelector<HTMLButtonElement>(DOM_SELECTORS.EXPAND_BUTTON);
-  if (expandButton) {
-    expandButton.click();
-  }
   
   const newDd = document.createElement('dd');
   newDd.className = DOM_CLASSES.FILTER_NAV_ITEM;
