@@ -33,9 +33,7 @@ async function setEnabled(enabled: boolean): Promise<void> {
           action: MESSAGE_ACTIONS.TOGGLE_EXTENSION, 
           enabled 
         });
-        console.log(`Sent toggle message to tab ${tab.id}: ${enabled}`);
       } catch (error) {
-        console.log(`Could not send message to tab ${tab.id}:`, error);
       }
     }
   }
@@ -51,7 +49,6 @@ const PopupComponent: React.FC = () => {
         const data = await getStorageData();
         setEnabledState(data.enabled);
       } catch (error) {
-        console.error('Failed to load settings:', error);
       } finally {
         setLoading(false);
       }
@@ -67,7 +64,6 @@ const PopupComponent: React.FC = () => {
     try {
       await setEnabled(newEnabled);
     } catch (error) {
-      console.error('Failed to save settings:', error);
       setEnabledState(!newEnabled);
     }
   };

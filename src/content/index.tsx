@@ -102,7 +102,6 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     }
   }
   
-  console.log(`現在のコメントの並び順を「${currentSortOrder}」と判断しました。`);
   
   const handleToggle = () => {
     const commentItems = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM));
@@ -137,14 +136,11 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
 
 // Listen for toggle messages
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  console.log('Received message:', request);
   
   if (request.action === MESSAGE_ACTIONS.TOGGLE_EXTENSION) {
     if (request.enabled) {
-      console.log('Enabling extension - adding sort button');
       initializeSortButton();
     } else {
-      console.log('Disabling extension - removing sort button');
       if (sortButtonElement) {
         sortButtonElement.remove();
         sortButtonElement = null;
