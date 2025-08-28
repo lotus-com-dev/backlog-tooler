@@ -11,7 +11,7 @@
                 "https://*.backlog.jp/view/*"
             ],
             "js": [
-                "sort-comments.js"
+                "dist/sort-comments.js"
             ],
             "run_at": "document_idle"
         }

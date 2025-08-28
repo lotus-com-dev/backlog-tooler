@@ -1,0 +1,14 @@
+{
+  "name": "backlog-comment-sorter",
+  "version": "2.0.0",
+  "description": "Backlog comment sorter Chrome extension",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.260",
+    "typescript": "^5.3.3"
+  }
+}
