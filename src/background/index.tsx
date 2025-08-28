@@ -2,7 +2,7 @@ import {
   STORAGE_KEYS,
   MESSAGE_ACTIONS,
   DEFAULT_SETTINGS
-} from '../constants';
+} from '@/constants';
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.sync.get([STORAGE_KEYS.ENABLED], (result) => {

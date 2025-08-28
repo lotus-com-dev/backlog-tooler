@@ -6,8 +6,8 @@ import {
   MESSAGE_ACTIONS,
   STATUS_MESSAGES,
   URL_PATTERNS
-} from '../constants';
-import type { StorageData } from '../constants';
+} from '@/constants';
+import type { StorageData } from '@/constants';
 
 async function getStorageData(): Promise<StorageData> {
   const result = await chrome.storage.sync.get([STORAGE_KEYS.ENABLED]);

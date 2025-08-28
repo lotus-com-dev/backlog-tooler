@@ -7,8 +7,8 @@ import {
   DOM_CLASSES,
   BUTTON_LABELS,
   SORT_ORDERS
-} from '../constants';
-import type { SortOrder } from '../constants';
+} from '@/constants';
+import type { SortOrder } from '@/constants';
 
 interface CommentItem extends HTMLLIElement {
   querySelector(selector: typeof DOM_SELECTORS.TIME_ELEMENT): HTMLAnchorElement | null;
