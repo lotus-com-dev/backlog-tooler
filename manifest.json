@@ -8,11 +8,12 @@
         "tabs"
     ],
     "action": {
-        "default_popup": "dist/popup.html",
+        "default_popup": "src/popup/popup.html",
         "default_title": "Backlog Comment Sorter"
     },
     "background": {
-        "service_worker": "dist/background.js"
+        "service_worker": "src/background/index.tsx",
+        "type": "module"
     },
     "content_scripts": [
         {
@@ -21,7 +22,7 @@
                 "https://*.backlog.jp/view/*"
             ],
             "js": [
-                "dist/sort-comments.js"
+                "src/content/index.tsx"
             ],
             "run_at": "document_idle"
         }

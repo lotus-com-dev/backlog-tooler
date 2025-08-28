@@ -1,6 +1,6 @@
 # Backlog Comment Sorter
 
-Backlogの課題ページにコメントのソート切り替えボタンを追加するChrome拡張機能です。TypeScriptで実装されています。
+Backlogの課題ページにコメントのソート切り替えボタンを追加するChrome拡張機能です。React + Vite + TypeScriptで実装されています。
 
 ## 機能
 
@@ -16,8 +16,8 @@ Backlogの課題ページにコメントのソート切り替えボタンを追�
 ## 開発環境のセットアップ
 
 ### 必要な環境
-- Node.js (v14以上推奨)
-- npm またはyarn
+- Node.js (v18以上推奨)
+- npm
 
 ### インストール手順
 
@@ -32,7 +32,7 @@ cd backlog-comment-sorter
 npm install
 ```
 
-3. TypeScriptをビルドします
+3. 拡張機能をビルドします
 ```bash
 npm run build
 ```
@@ -40,14 +40,17 @@ npm run build
 ### 開発時のコマンド
 
 ```bash
-# TypeScriptをビルド
+# 拡張機能をビルド
 npm run build
 
-# ファイル変更を監視して自動ビルド
-npm run watch
+# 開発サーバーを起動（ホットリロード）
+npm run dev
 
-# ビルド成果物をクリーン
-npm run clean
+# コードのリント
+npm run lint
+
+# プレビューサーバーを起動
+npm run preview
 ```
 
 ## Chrome拡張機能としてのインストール方法
@@ -60,7 +63,7 @@ npm run clean
 
 4. 「パッケージ化されていない拡張機能を読み込む」ボタンをクリックします
 
-5. ファイル選択ダイアログで、プロジェクトのルートディレクトリを選択します
+5. ファイル選択ダイアログで、ビルドされた`dist/`フォルダを選択します
 
 6. 拡張機能が読み込まれ、一覧に「Backlog Comment Sorter」が表示されます
 
@@ -91,13 +94,20 @@ npm run clean
 ```
 backlog-comment-sorter/
 ├── src/
-│   ├── sort-comments.ts    # コメントソート機能のメインスクリプト
-│   ├── popup.html          # ポップアップUIのHTML
-│   ├── popup.ts            # ポップアップUIのロジック
-│   ├── popup.css           # ポップアップUIのスタイル
-│   └── background.ts       # バックグラウンドサービスワーカー
-├── manifest.json            # Chrome拡張機能マニフェスト
-├── tsconfig.json           # TypeScript設定
+│   ├── background/
+│   │   └── index.tsx       # バックグラウンドサービスワーカー
+│   ├── content/
+│   │   └── index.tsx       # コメントソート機能のメインスクリプト
+│   └── popup/
+│       ├── index.tsx       # ポップアップUIのReactコンポーネント
+│       ├── popup.css       # ポップアップUIのスタイル
+│       └── popup.html      # ポップアップUIのHTML
+├── manifest.json           # Chrome拡張機能マニフェスト
+├── vite.config.ts          # Vite設定
+├── tsconfig.json           # TypeScript基本設定
+├── tsconfig.app.json       # アプリケーション用TypeScript設定
+├── tsconfig.node.json      # Node.js用TypeScript設定
+├── eslint.config.js        # ESLint設定
 ├── package.json            # プロジェクト設定と依存関係
 ├── .gitignore             # Git除外ファイル
 └── README.md              # このファイル
@@ -105,11 +115,14 @@ backlog-comment-sorter/
 
 ## 技術スタック
 
+- **React**: UIコンポーネントの構築
 - **TypeScript**: 型安全性を確保したJavaScript開発
+- **Vite**: 高速なビルドツールとバンドラー
+- **@crxjs/vite-plugin**: Vite用Chrome拡張機能開発プラグイン
 - **Chrome Extension Manifest V3**: 最新の拡張機能仕様に準拠
 - **Chrome Storage API**: 拡張機能の設定を永続的に保存
 - **Service Worker**: バックグラウンドでの状態管理
-- **DOM操作**: ネイティブのDOM APIを使用した軽量な実装
+- **ESLint**: コード品質の維持
 
 ## 対応サイト
 

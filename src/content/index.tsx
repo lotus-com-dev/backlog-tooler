@@ -1,49 +1,24 @@
-// Content script constants
-const CS_MESSAGE_ACTIONS = {
-  GET_ENABLED: 'getEnabled',
-  TOGGLE_EXTENSION: 'toggleExtension'
-} as const;
-
-const DOM_SELECTORS = {
-  FILTER_NAV: 'dl.filter-nav',
-  COMMENT_LIST: 'ul.comment-list__items',
-  COMMENT_ITEM: 'li.comment-item',
-  EXPAND_BUTTON: 'button[aria-label="過去のコメントを展開"]',
-  TIME_ELEMENT: '.user-icon-set__sub-line a',
-  BUTTON_TEXT: '.filter-nav__text'
-} as const;
-
-const DOM_IDS = {
-  SORT_TOGGLE_BUTTON: 'sort-toggle-button'
-} as const;
-
-const DOM_CLASSES = {
-  FILTER_NAV_ITEM: 'filter-nav__item',
-  FILTER_NAV_LINK: 'filter-nav__link',
-  FILTER_NAV_TEXT: 'filter-nav__text'
-} as const;
-
-const BUTTON_LABELS = {
-  ASC: '古い順で表示',
-  DESC: '新しい順で表示'
-} as const;
-
-const SORT_ORDERS = {
-  ASC: 'asc',
-  DESC: 'desc'
-} as const;
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import {
+  MESSAGE_ACTIONS,
+  DOM_SELECTORS,
+  DOM_IDS,
+  DOM_CLASSES,
+  BUTTON_LABELS,
+  SORT_ORDERS
+} from '../constants';
+import type { SortOrder } from '../constants';
 
 interface CommentItem extends HTMLLIElement {
   querySelector(selector: typeof DOM_SELECTORS.TIME_ELEMENT): HTMLAnchorElement | null;
 }
 
-type SortOrder = typeof SORT_ORDERS[keyof typeof SORT_ORDERS];
-
 let sortButtonElement: HTMLElement | null = null;
 
 async function isExtensionEnabled(): Promise<boolean> {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ action: CS_MESSAGE_ACTIONS.GET_ENABLED }, (response) => {
+    chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ENABLED }, (response) => {
       if (chrome.runtime.lastError) {
         resolve(true);
       } else {
@@ -52,6 +27,25 @@ async function isExtensionEnabled(): Promise<boolean> {
     });
   });
 }
+
+const SortButton: React.FC<{
+  onToggle: () => void;
+  isAscending: boolean;
+}> = ({ onToggle, isAscending }) => {
+  return (
+    <button
+      type="button"
+      className={DOM_CLASSES.FILTER_NAV_LINK}
+      id={DOM_IDS.SORT_TOGGLE_BUTTON}
+      aria-pressed={isAscending ? 'true' : 'false'}
+      onClick={onToggle}
+    >
+      <span className={DOM_CLASSES.FILTER_NAV_TEXT}>
+        {isAscending ? BUTTON_LABELS.ASC : BUTTON_LABELS.DESC}
+      </span>
+    </button>
+  );
+};
 
 async function initializeSortButton(): Promise<void> {
   const enabled = await isExtensionEnabled();
@@ -88,15 +82,8 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
   
   const newDd = document.createElement('dd');
   newDd.className = DOM_CLASSES.FILTER_NAV_ITEM;
-  newDd.innerHTML = `
-    <button type="button" class="${DOM_CLASSES.FILTER_NAV_LINK}" id="${DOM_IDS.SORT_TOGGLE_BUTTON}" aria-pressed="false">
-      <span class="${DOM_CLASSES.FILTER_NAV_TEXT}">${BUTTON_LABELS.ASC}</span>
-    </button>
-  `;
   filterNav.appendChild(newDd);
   sortButtonElement = newDd;
-  
-  const sortToggleButton = document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON) as HTMLButtonElement;
   
   const getTimestamp = (item: CommentItem): number => {
     const timeElement = item.querySelector(DOM_SELECTORS.TIME_ELEMENT);
@@ -117,7 +104,7 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
   
   console.log(`現在のコメントの並び順を「${currentSortOrder}」と判断しました。`);
   
-  sortToggleButton.addEventListener('click', () => {
+  const handleToggle = () => {
     const commentItems = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM));
     currentSortOrder = currentSortOrder === SORT_ORDERS.DESC ? SORT_ORDERS.ASC : SORT_ORDERS.DESC;
     
@@ -129,24 +116,30 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     
     commentItems.forEach(item => commentList.appendChild(item));
     
-    const buttonText = sortToggleButton.querySelector<HTMLSpanElement>(DOM_SELECTORS.BUTTON_TEXT);
-    if (buttonText) {
-      if (currentSortOrder === SORT_ORDERS.ASC) {
-        buttonText.textContent = BUTTON_LABELS.ASC;
-        sortToggleButton.setAttribute('aria-pressed', 'true');
-      } else {
-        buttonText.textContent = BUTTON_LABELS.DESC;
-        sortToggleButton.setAttribute('aria-pressed', 'false');
-      }
-    }
-  });
+    // Re-render the React component
+    root.render(
+      <SortButton 
+        onToggle={handleToggle} 
+        isAscending={currentSortOrder === SORT_ORDERS.ASC} 
+      />
+    );
+  };
+  
+  // Create React root and render the button
+  const root = createRoot(newDd);
+  root.render(
+    <SortButton 
+      onToggle={handleToggle} 
+      isAscending={currentSortOrder === SORT_ORDERS.ASC} 
+    />
+  );
 }
 
 // Listen for toggle messages
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   console.log('Received message:', request);
   
-  if (request.action === CS_MESSAGE_ACTIONS.TOGGLE_EXTENSION) {
+  if (request.action === MESSAGE_ACTIONS.TOGGLE_EXTENSION) {
     if (request.enabled) {
       console.log('Enabling extension - adding sort button');
       initializeSortButton();
@@ -158,7 +151,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       }
     }
     sendResponse({ success: true });
-    return true; // Keep the message channel open for async response
+    return true;
   }
   return false;
 });
