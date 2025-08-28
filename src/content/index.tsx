@@ -51,6 +51,29 @@ export const SortButton: React.FC<{
 
 function cleanupSortButton(): void {
   if (sortButtonElement) {
+    // Clean up observers if they exist
+    if ((sortButtonElement as any)._commentListObserver) {
+      (sortButtonElement as any)._commentListObserver.disconnect();
+    }
+    if ((sortButtonElement as any)._collapseObserver) {
+      (sortButtonElement as any)._collapseObserver.disconnect();
+    }
+    
+    // Remove all event listeners from collapse icons and view options buttons
+    const collapseIcons = document.querySelectorAll(DOM_SELECTORS.COLLAPSE_ICON);
+    collapseIcons.forEach(icon => {
+      // Create a clone to remove all event listeners
+      const newIcon = icon.cloneNode(true);
+      icon.parentNode?.replaceChild(newIcon, icon);
+    });
+    
+    const viewOptionsButtons = document.querySelectorAll(DOM_SELECTORS.VIEW_OPTIONS_BUTTON);
+    viewOptionsButtons.forEach(button => {
+      // Create a clone to remove all event listeners
+      const newButton = button.cloneNode(true);
+      button.parentNode?.replaceChild(newButton, button);
+    });
+    
     sortButtonElement.remove();
     sortButtonElement = null;
   }
@@ -149,6 +172,20 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     }
   }
   
+  // Function to update is_first class on the first visible comment
+  const updateIsFirstClass = () => {
+    const commentItems = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM));
+    
+    // Remove is_first class from all comments
+    commentItems.forEach(item => {
+      item.classList.remove('is_first');
+    });
+    
+    // Add is_first class to the first comment
+    if (commentItems.length > 0) {
+      commentItems[0].classList.add('is_first');
+    }
+  };
   
   const handleToggle = () => {
     const commentItems = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM));
@@ -168,10 +205,8 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     // Re-append sorted items to the comment list
     commentItems.forEach(item => commentList.appendChild(item));
     
-    // Add is_first class to the first actual comment (not the info item)
-    if (commentItems.length > 0) {
-      commentItems[0].classList.add('is_first');
-    }
+    // Update is_first class
+    updateIsFirstClass();
     
     // Re-render the React component
     root.render(
@@ -182,6 +217,72 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     );
   };
   
+  // Set up MutationObserver to detect changes in the comment list
+  const commentListObserver = new MutationObserver((mutations) => {
+    // Check if the mutations are relevant (not caused by our own sorting)
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        // Debounce the update to avoid multiple rapid calls
+        setTimeout(() => {
+          updateIsFirstClass();
+        }, 100);
+        break;
+      }
+    }
+  });
+  
+  // Start observing the comment list for changes
+  commentListObserver.observe(commentList, {
+    childList: true,
+    subtree: false
+  });
+  
+  // Add click listeners to collapse icons and view options buttons
+  const addCollapseListeners = () => {
+    // Individual collapse icons
+    const collapseIcons = document.querySelectorAll(DOM_SELECTORS.COLLAPSE_ICON);
+    collapseIcons.forEach(icon => {
+      // Remove any existing listener to avoid duplicates
+      icon.removeEventListener('click', handleCollapseClick);
+      icon.addEventListener('click', handleCollapseClick);
+    });
+    
+    // Expand all / Collapse all buttons
+    const viewOptionsButtons = document.querySelectorAll(DOM_SELECTORS.VIEW_OPTIONS_BUTTON);
+    viewOptionsButtons.forEach(button => {
+      // Remove any existing listener to avoid duplicates
+      button.removeEventListener('click', handleViewOptionsClick);
+      button.addEventListener('click', handleViewOptionsClick);
+    });
+  };
+  
+  const handleCollapseClick = () => {
+    // Wait for the DOM to update after collapse/expand
+    setTimeout(() => {
+      updateIsFirstClass();
+    }, 100);
+  };
+  
+  const handleViewOptionsClick = () => {
+    // Wait for the DOM to update after expand all/collapse all
+    setTimeout(() => {
+      updateIsFirstClass();
+    }, 100);
+  };
+  
+  // Initial setup of collapse listeners
+  addCollapseListeners();
+  
+  // Re-add listeners when new comments are added
+  const collapseObserver = new MutationObserver(() => {
+    addCollapseListeners();
+  });
+  
+  collapseObserver.observe(commentList, {
+    childList: true,
+    subtree: true
+  });
+  
   // Create React root and render the button
   const root = createRoot(newDd);
   root.render(
@@ -190,6 +291,10 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
       isAscending={currentSortOrder === SORT_ORDERS.ASC} 
     />
   );
+  
+  // Store observers for cleanup
+  (newDd as any)._commentListObserver = commentListObserver;
+  (newDd as any)._collapseObserver = collapseObserver;
 }
 
 // Listen for toggle messages

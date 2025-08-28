@@ -32,7 +32,9 @@ export const DOM_SELECTORS = {
   COMMENT_LIST: 'ul.comment-list__items',
   COMMENT_ITEM: 'li.comment-item',
   TIME_ELEMENT: '.user-icon-set__sub-line a',
-  BUTTON_TEXT: '.filter-nav__text'
+  BUTTON_TEXT: '.filter-nav__text',
+  COLLAPSE_ICON: '.comment-item__collapse-icon',
+  VIEW_OPTIONS_BUTTON: '.comment-list-heading__view-options-button'
 } as const;
 
 // DOM IDs
