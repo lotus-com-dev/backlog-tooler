@@ -1,0 +1,19 @@
+{
+    "manifest_version": 3,
+    "name": "Backlog Comment Sorter",
+    "version": "2.0",
+    "description": "Backlogの課題ページにコメントのソート切り替えボタンを自動で追加します。",
+    "permissions": [],
+    "content_scripts": [
+        {
+            "matches": [
+                "https://*.backlog.com/view/*",
+                "https://*.backlog.jp/view/*"
+            ],
+            "js": [
+                "sort-comments.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ]
+}
