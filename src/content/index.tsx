@@ -158,13 +158,24 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     const commentItems = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM));
     currentSortOrder = currentSortOrder === SORT_ORDERS.DESC ? SORT_ORDERS.ASC : SORT_ORDERS.DESC;
     
+    // Remove is_first class from all comments before sorting
+    commentItems.forEach(item => {
+      item.classList.remove('is_first');
+    });
+    
     commentItems.sort((a, b) => {
       const timeA = getTimestamp(a);
       const timeB = getTimestamp(b);
       return currentSortOrder === SORT_ORDERS.ASC ? timeA - timeB : timeB - timeA;
     });
     
+    // Re-append sorted items to the comment list
     commentItems.forEach(item => commentList.appendChild(item));
+    
+    // Add is_first class to the first actual comment (not the info item)
+    if (commentItems.length > 0) {
+      commentItems[0].classList.add('is_first');
+    }
     
     // Re-render the React component
     root.render(
