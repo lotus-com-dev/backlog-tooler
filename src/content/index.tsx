@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback, useRef, useImperativeHandle } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   MESSAGE_ACTIONS,
@@ -27,6 +27,7 @@ interface SortButtonElementWithObservers extends HTMLElement {
 let sortButtonElement: SortButtonElementWithObservers | null = null;
 let initializationObserver: MutationObserver | null = null;
 let reactRoot: ReturnType<typeof createRoot> | null = null;
+let sortButtonRef: React.RefObject<SortButtonRef | null> = React.createRef<SortButtonRef>();
 let abortController: AbortController | null = null;
 
 // WeakMap to manage observers without circular references
@@ -111,6 +112,47 @@ async function isExtensionEnabled(): Promise<boolean> {
   });
 }
 
+interface SortButtonRef {
+  updateSortOrder: (isAscending: boolean) => void;
+}
+
+const SortButtonComponent = React.forwardRef<SortButtonRef, {
+  onToggle: () => void;
+  initialSortOrder: boolean;
+}>((props, ref) => {
+  const [isAscending, setIsAscending] = useState(props.initialSortOrder);
+  const onToggleRef = useRef(props.onToggle);
+  
+  // Update the ref when onToggle changes
+  onToggleRef.current = props.onToggle;
+  
+  const handleToggle = useCallback(() => {
+    onToggleRef.current();
+  }, []);
+  
+  useImperativeHandle(ref, () => ({
+    updateSortOrder: (newIsAscending: boolean) => {
+      setIsAscending(newIsAscending);
+    }
+  }), []);
+  
+  return (
+    <button
+      type="button"
+      className={DOM_CLASSES.FILTER_NAV_LINK}
+      id={DOM_IDS.SORT_TOGGLE_BUTTON}
+      aria-pressed={isAscending ? ARIA_VALUES.TRUE : ARIA_VALUES.FALSE}
+      onClick={handleToggle}
+    >
+      <span className={DOM_CLASSES.FILTER_NAV_TEXT}>
+        {isAscending ? BUTTON_LABELS.ASC : BUTTON_LABELS.DESC}
+      </span>
+    </button>
+  );
+});
+
+SortButtonComponent.displayName = 'SortButtonComponent';
+
 export const SortButton: React.FC<{
   onToggle: () => void;
   isAscending: boolean;
@@ -152,6 +194,9 @@ function cleanupSortButton(): void {
     }
     reactRoot = null;
   }
+  
+  // Reset sort button ref
+  sortButtonRef = React.createRef<SortButtonRef>();
   
   // Clean up initialization observer
   if (initializationObserver) {
@@ -440,14 +485,9 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     // Update is_first class
     updateIsFirstClass();
     
-    // Re-render the React component
-    if (reactRoot && !abortController?.signal.aborted) {
-      reactRoot.render(
-        <SortButton 
-          onToggle={handleToggle} 
-          isAscending={currentSortOrder === SORT_ORDERS.ASC} 
-        />
-      );
+    // Update sort button state through ref (optimized - no re-render)
+    if (sortButtonRef.current && !abortController?.signal.aborted) {
+      sortButtonRef.current.updateSortOrder(currentSortOrder === SORT_ORDERS.ASC);
     }
   };
   
@@ -519,13 +559,14 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     });
   }
   
-  // Create React root and render the button
+  // Create React root and render the optimized button
   if (!abortController?.signal.aborted) {
     reactRoot = createRoot(newDd);
     reactRoot.render(
-      <SortButton 
+      <SortButtonComponent
+        ref={sortButtonRef}
         onToggle={handleToggle} 
-        isAscending={currentSortOrder === SORT_ORDERS.ASC} 
+        initialSortOrder={currentSortOrder === SORT_ORDERS.ASC} 
       />
     );
   }
