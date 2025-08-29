@@ -57,7 +57,8 @@ export const DOM_CLASSES = {
   FILTER_NAV_ITEM: 'filter-nav__item',
   FILTER_NAV_LINK: 'filter-nav__link',
   FILTER_NAV_TEXT: 'filter-nav__text',
-  IS_FIRST: 'is_first'
+  IS_FIRST: 'is_first',
+  DAMMY: '-dammy'
 } as const;
 
 // Button labels

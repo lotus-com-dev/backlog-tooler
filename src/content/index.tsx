@@ -393,7 +393,9 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
   };
   
   const handleToggle = () => {
-    const commentItems = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM));
+    // Get all comment items but exclude dummy items (like load comments button)
+    const commentItems = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM))
+      .filter(item => !item.classList.contains(DOM_CLASSES.DAMMY));
     currentSortOrder = currentSortOrder === SORT_ORDERS.DESC ? SORT_ORDERS.ASC : SORT_ORDERS.DESC;
     
     // Remove is_first class from all comments before sorting
