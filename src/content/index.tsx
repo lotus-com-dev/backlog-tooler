@@ -358,17 +358,35 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     return timeElement ? new Date(timeElement.textContent?.trim() || '').getTime() : 0;
   };
   
+  // Cache for timestamp values to avoid repeated DOM queries and date parsing
+  let timestampCache = new WeakMap<CommentItem, number>();
+  
+  const getCachedTimestamp = (item: CommentItem): number => {
+    if (!timestampCache.has(item)) {
+      timestampCache.set(item, getTimestamp(item));
+    }
+    return timestampCache.get(item)!;
+  };
+
   let currentSortOrder: SortOrder = SORT_ORDERS.ASC;
+  let sortedComments: CommentItem[] = [];
   const initialComments = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM));
   
   if (initialComments.length >= 2) {
-    const firstCommentTime = getTimestamp(initialComments[0]);
-    const lastCommentTime = getTimestamp(initialComments[initialComments.length - 1]);
+    const firstCommentTime = getCachedTimestamp(initialComments[0]);
+    const lastCommentTime = getCachedTimestamp(initialComments[initialComments.length - 1]);
     
     if (firstCommentTime > lastCommentTime) {
       currentSortOrder = SORT_ORDERS.DESC;
     }
   }
+
+  // Initialize sorted comments array with cached timestamps
+  sortedComments = initialComments.slice().sort((a, b) => {
+    const timeA = getCachedTimestamp(a);
+    const timeB = getCachedTimestamp(b);
+    return currentSortOrder === SORT_ORDERS.ASC ? timeA - timeB : timeB - timeA;
+  });
   
   // Function to update is_first class on the first visible comment
   const updateIsFirstClass = () => {
@@ -394,14 +412,30 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
       item.classList.remove(DOM_CLASSES.IS_FIRST);
     });
     
-    commentItems.sort((a, b) => {
-      const timeA = getTimestamp(a);
-      const timeB = getTimestamp(b);
-      return currentSortOrder === SORT_ORDERS.ASC ? timeA - timeB : timeB - timeA;
-    });
+    // Check if comments are already sorted - if so, just reverse instead of full sort
+    const currentCommentsMatch = commentItems.length === sortedComments.length && 
+      commentItems.every((item, index) => item === sortedComments[index]);
+    
+    if (currentCommentsMatch) {
+      // Comments haven't changed since last sort, just reverse the order
+      sortedComments.reverse();
+    } else {
+      // New comments detected or first sort, cache new timestamps and perform full sort
+      commentItems.forEach(item => {
+        if (!timestampCache.has(item)) {
+          timestampCache.set(item, getTimestamp(item));
+        }
+      });
+      
+      sortedComments = commentItems.slice().sort((a, b) => {
+        const timeA = getCachedTimestamp(a);
+        const timeB = getCachedTimestamp(b);
+        return currentSortOrder === SORT_ORDERS.ASC ? timeA - timeB : timeB - timeA;
+      });
+    }
     
     // Re-append sorted items to the comment list
-    commentItems.forEach(item => commentList.appendChild(item));
+    sortedComments.forEach(item => commentList.appendChild(item));
     
     // Update is_first class
     updateIsFirstClass();
@@ -427,6 +461,9 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     // Check if the mutations are relevant (not caused by our own sorting)
     for (const mutation of mutations) {
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        // Clear timestamp cache when new comments are added
+        timestampCache = new WeakMap<CommentItem, number>();
+        
         // Debounce the update to avoid multiple rapid calls
         const timeoutId = setTimeout(() => {
           // Check abort signal again before updating
