@@ -26,6 +26,56 @@ interface SortButtonElementWithObservers extends HTMLElement {
 
 let sortButtonElement: SortButtonElementWithObservers | null = null;
 let initializationObserver: MutationObserver | null = null;
+let reactRoot: ReturnType<typeof createRoot> | null = null;
+let abortController: AbortController | null = null;
+
+// WeakMap to manage observers without circular references
+const observerMap = new WeakMap<HTMLElement, MutationObserver[]>();
+
+// Resource tracking for debugging (only in development)
+const resourceTracker = {
+  activeObservers: new Set<MutationObserver>(),
+  activeTimeouts: new Set<NodeJS.Timeout>(),
+  activeElements: new Set<HTMLElement>(),
+  
+  trackObserver(observer: MutationObserver) {
+    this.activeObservers.add(observer);
+  },
+  
+  untrackObserver(observer: MutationObserver) {
+    this.activeObservers.delete(observer);
+  },
+  
+  trackTimeout(timeoutId: NodeJS.Timeout) {
+    this.activeTimeouts.add(timeoutId);
+  },
+  
+  clearTimeout(timeoutId: NodeJS.Timeout) {
+    clearTimeout(timeoutId);
+    this.activeTimeouts.delete(timeoutId);
+  },
+  
+  trackElement(element: HTMLElement) {
+    this.activeElements.add(element);
+  },
+  
+  untrackElement(element: HTMLElement) {
+    this.activeElements.delete(element);
+  },
+  
+  getActiveResourcesCount() {
+    return {
+      observers: this.activeObservers.size,
+      timeouts: this.activeTimeouts.size,
+      elements: this.activeElements.size
+    };
+  },
+  
+  clearAllTimeouts() {
+    this.activeTimeouts.forEach(id => clearTimeout(id));
+    this.activeTimeouts.clear();
+  }
+};
 
 // Global handlers for event delegation
 let handleCollapseClick: (() => void) | null = null;
@@ -81,31 +131,100 @@ export const SortButton: React.FC<{
 };
 
 function cleanupSortButton(): void {
+  console.debug('[BacklogCommentSorter] Starting cleanup, active resources:', resourceTracker.getActiveResourcesCount());
+  
+  // Abort all ongoing operations
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+  
+  // Clear all tracked timeouts
+  resourceTracker.clearAllTimeouts();
+  
+  // Clean up React root first to prevent memory leaks
+  if (reactRoot) {
+    try {
+      reactRoot.unmount();
+      console.debug('[BacklogCommentSorter] React root unmounted successfully');
+    } catch (error) {
+      console.warn('[BacklogCommentSorter] Failed to unmount React root:', error);
+    }
+    reactRoot = null;
+  }
+  
   // Clean up initialization observer
   if (initializationObserver) {
-    initializationObserver.disconnect();
+    try {
+      initializationObserver.disconnect();
+      resourceTracker.untrackObserver(initializationObserver);
+    } catch (error) {
+      console.warn('[BacklogCommentSorter] Failed to disconnect initialization observer:', error);
+    }
     initializationObserver = null;
   }
   
   if (sortButtonElement) {
-    // Clean up observers if they exist
+    // Clean up observers using WeakMap
+    const observers = observerMap.get(sortButtonElement);
+    if (observers) {
+      observers.forEach(observer => {
+        try {
+          observer.disconnect();
+          resourceTracker.untrackObserver(observer);
+        } catch (error) {
+          console.warn('[BacklogCommentSorter] Failed to disconnect observer:', error);
+        }
+      });
+      observerMap.delete(sortButtonElement);
+    }
+    
+    // Clean up legacy observers if they exist (for backward compatibility)
     if (sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]) {
-      sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]?.disconnect();
+      try {
+        sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]?.disconnect();
+        resourceTracker.untrackObserver(sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]!);
+        delete sortButtonElement[OBSERVER_NAMES.COMMENT_LIST];
+      } catch (error) {
+        console.warn('[BacklogCommentSorter] Failed to disconnect legacy observer:', error);
+      }
     }
     
     // Remove event delegation listener from comment list
     const commentList = document.querySelector<HTMLUListElement>(DOM_SELECTORS.COMMENT_LIST);
     if (commentList) {
-      commentList.removeEventListener('click', handleDelegatedClick);
+      try {
+        commentList.removeEventListener('click', handleDelegatedClick);
+      } catch (error) {
+        console.warn('[BacklogCommentSorter] Failed to remove event listener:', error);
+      }
     }
     
     // Reset global handlers
     handleCollapseClick = null;
     handleViewOptionsClick = null;
     
-    sortButtonElement.remove();
+    // Remove DOM element
+    try {
+      sortButtonElement.remove();
+      resourceTracker.untrackElement(sortButtonElement);
+      console.debug('[BacklogCommentSorter] Sort button element removed successfully');
+    } catch (error) {
+      console.warn('[BacklogCommentSorter] Failed to remove sort button element:', error);
+    }
     sortButtonElement = null;
   }
+  
+  // Final resource check
+  const finalResourceCount = resourceTracker.getActiveResourcesCount();
+  if (finalResourceCount.observers > 0 || finalResourceCount.timeouts > 0) {
+    console.warn('[BacklogCommentSorter] Cleanup incomplete, remaining resources:', finalResourceCount);
+  } else {
+    console.debug('[BacklogCommentSorter] Cleanup completed successfully');
+  }
+  
+  // Create new AbortController for next initialization
+  abortController = new AbortController();
 }
 
 function isViewPage(): boolean {
@@ -113,6 +232,16 @@ function isViewPage(): boolean {
 }
 
 async function initializeSortButton(retryCount: number = 0): Promise<void> {
+  // Create AbortController if it doesn't exist
+  if (!abortController) {
+    abortController = new AbortController();
+  }
+  
+  // Check if operation was aborted
+  if (abortController.signal.aborted) {
+    return;
+  }
+  
   const enabled = await isExtensionEnabled();
   if (!enabled) {
     cleanupSortButton();
@@ -141,19 +270,27 @@ async function initializeSortButton(retryCount: number = 0): Promise<void> {
   
   // For immediate retry attempts, use setTimeout
   if (retryCount > 0) {
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       initializeSortButton(retryCount + 1);
+      resourceTracker.clearTimeout(timeoutId);
     }, TIMING.RETRY_DELAY);
+    resourceTracker.trackTimeout(timeoutId);
     return;
   }
   
   // Clean up any existing initialization observer
   if (initializationObserver) {
     initializationObserver.disconnect();
+    resourceTracker.untrackObserver(initializationObserver);
   }
   
   // Use MutationObserver to efficiently wait for the element
   initializationObserver = new MutationObserver((mutations) => {
+    // Check if operation was aborted
+    if (abortController?.signal.aborted) {
+      return;
+    }
+    
     for (const mutation of mutations) {
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
         const targetElement = document.querySelector<HTMLDListElement>(DOM_SELECTORS.FILTER_NAV);
@@ -164,13 +301,19 @@ async function initializeSortButton(retryCount: number = 0): Promise<void> {
           }
           // Use requestAnimationFrame to ensure DOM is ready
           requestAnimationFrame(() => {
-            addSortToggleButtonAndExpand(targetElement);
+            // Check abort signal before proceeding
+            if (!abortController?.signal.aborted) {
+              addSortToggleButtonAndExpand(targetElement);
+            }
           });
           break;
         }
       }
     }
   });
+  
+  // Track the observer for resource management
+  resourceTracker.trackObserver(initializationObserver);
   
   // Start observing changes to the document body
   initializationObserver.observe(document.body, {
@@ -179,14 +322,18 @@ async function initializeSortButton(retryCount: number = 0): Promise<void> {
   });
   
   // Set up timeout to prevent observer from running forever
-  setTimeout(() => {
+  const timeoutId = setTimeout(() => {
     if (initializationObserver) {
       initializationObserver.disconnect();
+      resourceTracker.untrackObserver(initializationObserver);
       initializationObserver = null;
       // Try again with retry mechanism
       initializeSortButton(1);
     }
+    resourceTracker.clearTimeout(timeoutId);
   }, TIMING.OBSERVER_TIMEOUT);
+  
+  resourceTracker.trackTimeout(timeoutId);
 }
 
 function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
@@ -202,6 +349,9 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
   newDd.className = DOM_CLASSES.FILTER_NAV_ITEM;
   filterNav.appendChild(newDd);
   sortButtonElement = newDd;
+  
+  // Track the sort button element for resource management
+  resourceTracker.trackElement(newDd);
   
   const getTimestamp = (item: CommentItem): number => {
     const timeElement = item.querySelector(DOM_SELECTORS.TIME_ELEMENT);
@@ -257,63 +407,99 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     updateIsFirstClass();
     
     // Re-render the React component
-    root.render(
-      <SortButton 
-        onToggle={handleToggle} 
-        isAscending={currentSortOrder === SORT_ORDERS.ASC} 
-      />
-    );
+    if (reactRoot && !abortController?.signal.aborted) {
+      reactRoot.render(
+        <SortButton 
+          onToggle={handleToggle} 
+          isAscending={currentSortOrder === SORT_ORDERS.ASC} 
+        />
+      );
+    }
   };
   
   // Set up MutationObserver to detect changes in the comment list
   const commentListObserver = new MutationObserver((mutations) => {
+    // Check if operation was aborted
+    if (abortController?.signal.aborted) {
+      return;
+    }
+    
     // Check if the mutations are relevant (not caused by our own sorting)
     for (const mutation of mutations) {
       if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
         // Debounce the update to avoid multiple rapid calls
-        setTimeout(() => {
-          updateIsFirstClass();
+        const timeoutId = setTimeout(() => {
+          // Check abort signal again before updating
+          if (!abortController?.signal.aborted) {
+            updateIsFirstClass();
+          }
+          resourceTracker.clearTimeout(timeoutId);
         }, TIMING.UPDATE_DEBOUNCE);
+        resourceTracker.trackTimeout(timeoutId);
         break;
       }
     }
   });
   
-  // Start observing the comment list for changes
-  commentListObserver.observe(commentList, {
-    childList: true,
-    subtree: false
-  });
+  // Track the comment list observer for resource management
+  resourceTracker.trackObserver(commentListObserver);
+  
+  // Start observing the comment list for changes with abort signal support
+  if (!abortController?.signal.aborted) {
+    commentListObserver.observe(commentList, {
+      childList: true,
+      subtree: false
+    });
+  }
   
   
   // Set up global handlers for event delegation
   handleCollapseClick = () => {
     // Wait for the DOM to update after collapse/expand
-    setTimeout(() => {
-      updateIsFirstClass();
+    const timeoutId = setTimeout(() => {
+      // Check abort signal again before updating
+      if (!abortController?.signal.aborted) {
+        updateIsFirstClass();
+      }
+      resourceTracker.clearTimeout(timeoutId);
     }, TIMING.UPDATE_DEBOUNCE);
+    resourceTracker.trackTimeout(timeoutId);
   };
   
   handleViewOptionsClick = () => {
     // Wait for the DOM to update after expand all/collapse all
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       updateIsFirstClass();
+      resourceTracker.clearTimeout(timeoutId);
     }, TIMING.UPDATE_DEBOUNCE);
+    resourceTracker.trackTimeout(timeoutId);
   };
   
-  // Set up event delegation for collapse icons and view options buttons
-  commentList.addEventListener('click', handleDelegatedClick);
+  // Set up event delegation for collapse icons and view options buttons with abort signal support
+  if (abortController && !abortController.signal.aborted) {
+    commentList.addEventListener('click', handleDelegatedClick, { 
+      signal: abortController.signal 
+    });
+  }
   
   // Create React root and render the button
-  const root = createRoot(newDd);
-  root.render(
-    <SortButton 
-      onToggle={handleToggle} 
-      isAscending={currentSortOrder === SORT_ORDERS.ASC} 
-    />
-  );
+  if (!abortController?.signal.aborted) {
+    reactRoot = createRoot(newDd);
+    reactRoot.render(
+      <SortButton 
+        onToggle={handleToggle} 
+        isAscending={currentSortOrder === SORT_ORDERS.ASC} 
+      />
+    );
+  }
   
-  // Store observers for cleanup
+  // Store observers using WeakMap for memory safety
+  if (newDd) {
+    const existingObservers = observerMap.get(newDd) || [];
+    observerMap.set(newDd, [...existingObservers, commentListObserver]);
+  }
+  
+  // Legacy support: also store in element property for backward compatibility
   (newDd as SortButtonElementWithObservers)[OBSERVER_NAMES.COMMENT_LIST] = commentListObserver;
 }
 
@@ -355,7 +541,31 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   return false;
 });
 
-// Initialize on page load only if we're on a view page
+// Development mode resource monitoring
+if (process.env.NODE_ENV === 'development') {
+  // Monitor resources every 30 seconds
+  const monitoringInterval = setInterval(() => {
+    const resourceCount = resourceTracker.getActiveResourcesCount();
+    console.debug('[BacklogCommentSorter] Resource monitoring:', {
+      ...resourceCount,
+      url: window.location.href,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Warn if resources are accumulating
+    if (resourceCount.observers > 5 || resourceCount.timeouts > 10) {
+      console.warn('[BacklogCommentSorter] High resource usage detected. Possible memory leak?', resourceCount);
+    }
+  }, 30000);
+  
+  // Clean up monitoring on page unload
+  window.addEventListener('beforeunload', () => {
+    clearInterval(monitoringInterval);
+  });
+}
+
+// Initialize AbortController and setup on page load only if we're on a view page
+abortController = new AbortController();
 if (isViewPage()) {
   initializeSortButton();
 }
