@@ -27,6 +27,28 @@ interface SortButtonElementWithObservers extends HTMLElement {
 let sortButtonElement: SortButtonElementWithObservers | null = null;
 let initializationObserver: MutationObserver | null = null;
 
+// Global handlers for event delegation
+let handleCollapseClick: (() => void) | null = null;
+let handleViewOptionsClick: (() => void) | null = null;
+
+// Event delegation handler for collapse and view options clicks
+const handleDelegatedClick = (event: Event) => {
+  const target = event.target as HTMLElement;
+  
+  // Check if clicked element matches collapse icon selector
+  if (target.matches(DOM_SELECTORS.COLLAPSE_ICON) || target.closest(DOM_SELECTORS.COLLAPSE_ICON)) {
+    if (handleCollapseClick) {
+      handleCollapseClick();
+    }
+  }
+  // Check if clicked element matches view options button selector
+  else if (target.matches(DOM_SELECTORS.VIEW_OPTIONS_BUTTON) || target.closest(DOM_SELECTORS.VIEW_OPTIONS_BUTTON)) {
+    if (handleViewOptionsClick) {
+      handleViewOptionsClick();
+    }
+  }
+};
+
 async function isExtensionEnabled(): Promise<boolean> {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage({ action: MESSAGE_ACTIONS.GET_ENABLED }, (response) => {
@@ -70,24 +92,16 @@ function cleanupSortButton(): void {
     if (sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]) {
       sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]?.disconnect();
     }
-    if (sortButtonElement[OBSERVER_NAMES.COLLAPSE]) {
-      sortButtonElement[OBSERVER_NAMES.COLLAPSE]?.disconnect();
+    
+    // Remove event delegation listener from comment list
+    const commentList = document.querySelector<HTMLUListElement>(DOM_SELECTORS.COMMENT_LIST);
+    if (commentList) {
+      commentList.removeEventListener('click', handleDelegatedClick);
     }
     
-    // Remove all event listeners from collapse icons and view options buttons
-    const collapseIcons = document.querySelectorAll(DOM_SELECTORS.COLLAPSE_ICON);
-    collapseIcons.forEach(icon => {
-      // Create a clone to remove all event listeners
-      const newIcon = icon.cloneNode(true);
-      icon.parentNode?.replaceChild(newIcon, icon);
-    });
-    
-    const viewOptionsButtons = document.querySelectorAll(DOM_SELECTORS.VIEW_OPTIONS_BUTTON);
-    viewOptionsButtons.forEach(button => {
-      // Create a clone to remove all event listeners
-      const newButton = button.cloneNode(true);
-      button.parentNode?.replaceChild(newButton, button);
-    });
+    // Reset global handlers
+    handleCollapseClick = null;
+    handleViewOptionsClick = null;
     
     sortButtonElement.remove();
     sortButtonElement = null;
@@ -271,51 +285,24 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     subtree: false
   });
   
-  // Add click listeners to collapse icons and view options buttons
-  const addCollapseListeners = () => {
-    // Individual collapse icons
-    const collapseIcons = document.querySelectorAll(DOM_SELECTORS.COLLAPSE_ICON);
-    collapseIcons.forEach(icon => {
-      // Remove any existing listener to avoid duplicates
-      icon.removeEventListener('click', handleCollapseClick);
-      icon.addEventListener('click', handleCollapseClick);
-    });
-    
-    // Expand all / Collapse all buttons
-    const viewOptionsButtons = document.querySelectorAll(DOM_SELECTORS.VIEW_OPTIONS_BUTTON);
-    viewOptionsButtons.forEach(button => {
-      // Remove any existing listener to avoid duplicates
-      button.removeEventListener('click', handleViewOptionsClick);
-      button.addEventListener('click', handleViewOptionsClick);
-    });
-  };
   
-  const handleCollapseClick = () => {
+  // Set up global handlers for event delegation
+  handleCollapseClick = () => {
     // Wait for the DOM to update after collapse/expand
     setTimeout(() => {
       updateIsFirstClass();
     }, TIMING.UPDATE_DEBOUNCE);
   };
   
-  const handleViewOptionsClick = () => {
+  handleViewOptionsClick = () => {
     // Wait for the DOM to update after expand all/collapse all
     setTimeout(() => {
       updateIsFirstClass();
     }, TIMING.UPDATE_DEBOUNCE);
   };
   
-  // Initial setup of collapse listeners
-  addCollapseListeners();
-  
-  // Re-add listeners when new comments are added
-  const collapseObserver = new MutationObserver(() => {
-    addCollapseListeners();
-  });
-  
-  collapseObserver.observe(commentList, {
-    childList: true,
-    subtree: true
-  });
+  // Set up event delegation for collapse icons and view options buttons
+  commentList.addEventListener('click', handleDelegatedClick);
   
   // Create React root and render the button
   const root = createRoot(newDd);
@@ -328,7 +315,6 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
   
   // Store observers for cleanup
   (newDd as SortButtonElementWithObservers)[OBSERVER_NAMES.COMMENT_LIST] = commentListObserver;
-  (newDd as SortButtonElementWithObservers)[OBSERVER_NAMES.COLLAPSE] = collapseObserver;
 }
 
 // Listen for messages from background script
