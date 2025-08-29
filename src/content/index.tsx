@@ -6,7 +6,12 @@ import {
   DOM_IDS,
   DOM_CLASSES,
   BUTTON_LABELS,
-  SORT_ORDERS
+  SORT_ORDERS,
+  URL_PATTERNS,
+  TIMING,
+  RESPONSE_KEYS,
+  OBSERVER_NAMES,
+  ARIA_VALUES
 } from '@/constants';
 import type { SortOrder } from '@/constants';
 
@@ -14,9 +19,12 @@ interface CommentItem extends HTMLLIElement {
   querySelector(selector: typeof DOM_SELECTORS.TIME_ELEMENT): HTMLAnchorElement | null;
 }
 
-let sortButtonElement: HTMLElement | null = null;
-let currentUrl = window.location.href;
-let navigationObserver: MutationObserver | null = null;
+interface SortButtonElementWithObservers extends HTMLElement {
+  [OBSERVER_NAMES.COMMENT_LIST]?: MutationObserver;
+  [OBSERVER_NAMES.COLLAPSE]?: MutationObserver;
+}
+
+let sortButtonElement: SortButtonElementWithObservers | null = null;
 
 async function isExtensionEnabled(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -24,7 +32,7 @@ async function isExtensionEnabled(): Promise<boolean> {
       if (chrome.runtime.lastError) {
         resolve(true);
       } else {
-        resolve(response?.enabled ?? true);
+        resolve(response?.[RESPONSE_KEYS.ENABLED] ?? true);
       }
     });
   });
@@ -39,7 +47,7 @@ export const SortButton: React.FC<{
       type="button"
       className={DOM_CLASSES.FILTER_NAV_LINK}
       id={DOM_IDS.SORT_TOGGLE_BUTTON}
-      aria-pressed={isAscending ? 'true' : 'false'}
+      aria-pressed={isAscending ? ARIA_VALUES.TRUE : ARIA_VALUES.FALSE}
       onClick={onToggle}
     >
       <span className={DOM_CLASSES.FILTER_NAV_TEXT}>
@@ -52,11 +60,11 @@ export const SortButton: React.FC<{
 function cleanupSortButton(): void {
   if (sortButtonElement) {
     // Clean up observers if they exist
-    if ((sortButtonElement as any)._commentListObserver) {
-      (sortButtonElement as any)._commentListObserver.disconnect();
+    if (sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]) {
+      sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]?.disconnect();
     }
-    if ((sortButtonElement as any)._collapseObserver) {
-      (sortButtonElement as any)._collapseObserver.disconnect();
+    if (sortButtonElement[OBSERVER_NAMES.COLLAPSE]) {
+      sortButtonElement[OBSERVER_NAMES.COLLAPSE]?.disconnect();
     }
     
     // Remove all event listeners from collapse icons and view options buttons
@@ -79,44 +87,8 @@ function cleanupSortButton(): void {
   }
 }
 
-function detectURLChange(): void {
-  const newUrl = window.location.href;
-  if (currentUrl !== newUrl) {
-    currentUrl = newUrl;
-    cleanupSortButton();
-    initializeSortButton();
-  }
-}
-
-function startNavigationDetection(): void {
-  // Listen for popstate events (browser back/forward)
-  window.addEventListener('popstate', detectURLChange);
-  
-  // Periodically check for URL changes (for programmatic navigation)
-  setInterval(detectURLChange, 1000);
-  
-  // Use MutationObserver to detect DOM changes that indicate new page content
-  navigationObserver = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === 'childList') {
-        const hasCommentList = document.querySelector(DOM_SELECTORS.COMMENT_LIST);
-        const hasFilterNav = document.querySelector(DOM_SELECTORS.FILTER_NAV);
-        const hasExistingButton = document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON);
-        
-        // If we have the required elements but no button, reinitialize
-        if (hasCommentList && hasFilterNav && !hasExistingButton) {
-          detectURLChange();
-          break;
-        }
-      }
-    }
-  });
-  
-  // Observe changes to the document body
-  navigationObserver.observe(document.body, {
-    childList: true,
-    subtree: true
-  });
+function isViewPage(): boolean {
+  return window.location.pathname.includes(URL_PATTERNS.VIEW_PATH);
 }
 
 async function initializeSortButton(): Promise<void> {
@@ -138,7 +110,7 @@ async function initializeSortButton(): Promise<void> {
       clearInterval(observer);
       addSortToggleButtonAndExpand(targetElement);
     }
-  }, 500);
+  }, TIMING.OBSERVER_INTERVAL);
 }
 
 function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
@@ -178,12 +150,12 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     
     // Remove is_first class from all comments
     commentItems.forEach(item => {
-      item.classList.remove('is_first');
+      item.classList.remove(DOM_CLASSES.IS_FIRST);
     });
     
     // Add is_first class to the first comment
     if (commentItems.length > 0) {
-      commentItems[0].classList.add('is_first');
+      commentItems[0].classList.add(DOM_CLASSES.IS_FIRST);
     }
   };
   
@@ -193,7 +165,7 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     
     // Remove is_first class from all comments before sorting
     commentItems.forEach(item => {
-      item.classList.remove('is_first');
+      item.classList.remove(DOM_CLASSES.IS_FIRST);
     });
     
     commentItems.sort((a, b) => {
@@ -225,7 +197,7 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
         // Debounce the update to avoid multiple rapid calls
         setTimeout(() => {
           updateIsFirstClass();
-        }, 100);
+        }, TIMING.UPDATE_DEBOUNCE);
         break;
       }
     }
@@ -260,14 +232,14 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     // Wait for the DOM to update after collapse/expand
     setTimeout(() => {
       updateIsFirstClass();
-    }, 100);
+    }, TIMING.UPDATE_DEBOUNCE);
   };
   
   const handleViewOptionsClick = () => {
     // Wait for the DOM to update after expand all/collapse all
     setTimeout(() => {
       updateIsFirstClass();
-    }, 100);
+    }, TIMING.UPDATE_DEBOUNCE);
   };
   
   // Initial setup of collapse listeners
@@ -293,11 +265,11 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
   );
   
   // Store observers for cleanup
-  (newDd as any)._commentListObserver = commentListObserver;
-  (newDd as any)._collapseObserver = collapseObserver;
+  (newDd as SortButtonElementWithObservers)[OBSERVER_NAMES.COMMENT_LIST] = commentListObserver;
+  (newDd as SortButtonElementWithObservers)[OBSERVER_NAMES.COLLAPSE] = collapseObserver;
 }
 
-// Listen for toggle messages
+// Listen for messages from background script
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   
   if (request.action === MESSAGE_ACTIONS.TOGGLE_EXTENSION) {
@@ -306,12 +278,37 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     } else {
       cleanupSortButton();
     }
-    sendResponse({ success: true });
+    sendResponse({ [RESPONSE_KEYS.SUCCESS]: true });
     return true;
   }
+  
+  if (request.action === MESSAGE_ACTIONS.NAVIGATION_TO_VIEW) {
+    // Navigated to a view page, initialize the button
+    initializeSortButton();
+    sendResponse({ [RESPONSE_KEYS.SUCCESS]: true });
+    return true;
+  }
+  
+  if (request.action === MESSAGE_ACTIONS.NAVIGATION_FROM_VIEW) {
+    // Navigated away from a view page, clean up
+    cleanupSortButton();
+    sendResponse({ [RESPONSE_KEYS.SUCCESS]: true });
+    return true;
+  }
+  
+  if (request.action === MESSAGE_ACTIONS.NAVIGATION_VIEW_TO_VIEW) {
+    // Navigated from one view page to another view page
+    // Clean up the old button and initialize for the new page
+    cleanupSortButton();
+    initializeSortButton();
+    sendResponse({ [RESPONSE_KEYS.SUCCESS]: true });
+    return true;
+  }
+  
   return false;
 });
 
-// Initialize on page load and start navigation detection
-initializeSortButton();
-startNavigationDetection();
+// Initialize on page load only if we're on a view page
+if (isViewPage()) {
+  initializeSortButton();
+}

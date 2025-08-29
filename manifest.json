@@ -5,7 +5,8 @@
     "description": "Backlogの課題ページにコメントのソート切り替えボタンを自動で追加します。",
     "permissions": [
         "storage",
-        "tabs"
+        "tabs",
+        "webNavigation"
     ],
     "action": {
         "default_popup": "src/popup/popup.html",
@@ -18,8 +19,8 @@
     "content_scripts": [
         {
             "matches": [
-                "https://*.backlog.com/view/*",
-                "https://*.backlog.jp/view/*"
+                "https://*.backlog.com/*",
+                "https://*.backlog.jp/*"
             ],
             "js": [
                 "src/content/index.tsx"

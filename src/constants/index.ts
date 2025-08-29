@@ -6,7 +6,10 @@ export const STORAGE_KEYS = {
 // Message actions
 export const MESSAGE_ACTIONS = {
   GET_ENABLED: 'getEnabled',
-  TOGGLE_EXTENSION: 'toggleExtension'
+  TOGGLE_EXTENSION: 'toggleExtension',
+  NAVIGATION_TO_VIEW: 'navigationToView',
+  NAVIGATION_FROM_VIEW: 'navigationFromView',
+  NAVIGATION_VIEW_TO_VIEW: 'navigationViewToView'
 } as const;
 
 // Default settings
@@ -23,7 +26,14 @@ export const STATUS_MESSAGES = {
 // URL patterns
 export const URL_PATTERNS = {
   BACKLOG_COM: '.backlog.com/view/',
-  BACKLOG_JP: '.backlog.jp/view/'
+  BACKLOG_JP: '.backlog.jp/view/',
+  VIEW_PATH: '/view/'
+} as const;
+
+// Domain patterns
+export const DOMAIN_PATTERNS = {
+  BACKLOG_COM: '.backlog.com',
+  BACKLOG_JP: '.backlog.jp'
 } as const;
 
 // DOM selectors
@@ -46,7 +56,8 @@ export const DOM_IDS = {
 export const DOM_CLASSES = {
   FILTER_NAV_ITEM: 'filter-nav__item',
   FILTER_NAV_LINK: 'filter-nav__link',
-  FILTER_NAV_TEXT: 'filter-nav__text'
+  FILTER_NAV_TEXT: 'filter-nav__text',
+  IS_FIRST: 'is_first'
 } as const;
 
 // Button labels
@@ -59,6 +70,30 @@ export const BUTTON_LABELS = {
 export const SORT_ORDERS = {
   ASC: 'asc',
   DESC: 'desc'
+} as const;
+
+// Timing constants
+export const TIMING = {
+  OBSERVER_INTERVAL: 500,
+  UPDATE_DEBOUNCE: 100
+} as const;
+
+// Response keys
+export const RESPONSE_KEYS = {
+  ENABLED: 'enabled',
+  SUCCESS: 'success'
+} as const;
+
+// Observer names (for internal tracking)
+export const OBSERVER_NAMES = {
+  COMMENT_LIST: '_commentListObserver',
+  COLLAPSE: '_collapseObserver'
+} as const;
+
+// Aria attributes
+export const ARIA_VALUES = {
+  TRUE: 'true',
+  FALSE: 'false'
 } as const;
 
 // Types
