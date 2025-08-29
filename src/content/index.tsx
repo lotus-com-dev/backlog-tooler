@@ -25,6 +25,7 @@ interface SortButtonElementWithObservers extends HTMLElement {
 }
 
 let sortButtonElement: SortButtonElementWithObservers | null = null;
+let initializationObserver: MutationObserver | null = null;
 
 async function isExtensionEnabled(): Promise<boolean> {
   return new Promise((resolve) => {
@@ -58,6 +59,12 @@ export const SortButton: React.FC<{
 };
 
 function cleanupSortButton(): void {
+  // Clean up initialization observer
+  if (initializationObserver) {
+    initializationObserver.disconnect();
+    initializationObserver = null;
+  }
+  
   if (sortButtonElement) {
     // Clean up observers if they exist
     if (sortButtonElement[OBSERVER_NAMES.COMMENT_LIST]) {
@@ -91,7 +98,7 @@ function isViewPage(): boolean {
   return window.location.pathname.includes(URL_PATTERNS.VIEW_PATH);
 }
 
-async function initializeSortButton(): Promise<void> {
+async function initializeSortButton(retryCount: number = 0): Promise<void> {
   const enabled = await isExtensionEnabled();
   if (!enabled) {
     cleanupSortButton();
@@ -103,14 +110,69 @@ async function initializeSortButton(): Promise<void> {
     return;
   }
   
-  const observer = setInterval(() => {
-    const targetElement = document.querySelector<HTMLDListElement>(DOM_SELECTORS.FILTER_NAV);
-    
-    if (targetElement) {
-      clearInterval(observer);
-      addSortToggleButtonAndExpand(targetElement);
+  // Check if element already exists
+  const existingElement = document.querySelector<HTMLDListElement>(DOM_SELECTORS.FILTER_NAV);
+  if (existingElement) {
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      addSortToggleButtonAndExpand(existingElement);
+    });
+    return;
+  }
+  
+  // If we've exceeded max retries, give up
+  if (retryCount >= TIMING.MAX_RETRIES) {
+    return;
+  }
+  
+  // For immediate retry attempts, use setTimeout
+  if (retryCount > 0) {
+    setTimeout(() => {
+      initializeSortButton(retryCount + 1);
+    }, TIMING.RETRY_DELAY);
+    return;
+  }
+  
+  // Clean up any existing initialization observer
+  if (initializationObserver) {
+    initializationObserver.disconnect();
+  }
+  
+  // Use MutationObserver to efficiently wait for the element
+  initializationObserver = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+        const targetElement = document.querySelector<HTMLDListElement>(DOM_SELECTORS.FILTER_NAV);
+        if (targetElement) {
+          if (initializationObserver) {
+            initializationObserver.disconnect();
+            initializationObserver = null;
+          }
+          // Use requestAnimationFrame to ensure DOM is ready
+          requestAnimationFrame(() => {
+            addSortToggleButtonAndExpand(targetElement);
+          });
+          break;
+        }
+      }
     }
-  }, TIMING.OBSERVER_INTERVAL);
+  });
+  
+  // Start observing changes to the document body
+  initializationObserver.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+  
+  // Set up timeout to prevent observer from running forever
+  setTimeout(() => {
+    if (initializationObserver) {
+      initializationObserver.disconnect();
+      initializationObserver = null;
+      // Try again with retry mechanism
+      initializeSortButton(1);
+    }
+  }, TIMING.OBSERVER_TIMEOUT);
 }
 
 function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
@@ -271,7 +333,6 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
 
 // Listen for messages from background script
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
-  
   if (request.action === MESSAGE_ACTIONS.TOGGLE_EXTENSION) {
     if (request.enabled) {
       initializeSortButton();
