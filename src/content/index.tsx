@@ -234,9 +234,10 @@ async function initializeSortButton(retryCount: number = 0): Promise<void> {
     return;
   }
   
-  // Don't reinitialize if button already exists
-  if (document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON)) {
-    return;
+  // Clean up any existing button before creating new one
+  const existingButton = document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON);
+  if (existingButton || sortButtonElement) {
+    cleanupSortButton();
   }
   
   // Check if element already exists
@@ -323,8 +324,10 @@ async function initializeSortButton(retryCount: number = 0): Promise<void> {
 }
 
 function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
-  if (document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON)) {
-    return;
+  // Double-check for existing button and clean up if found
+  const existingButton = document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON);
+  if (existingButton || sortButtonElement) {
+    cleanupSortButton();
   }
   
   const commentList = document.querySelector<HTMLUListElement>(DOM_SELECTORS.COMMENT_LIST);
