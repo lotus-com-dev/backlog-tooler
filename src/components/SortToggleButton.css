@@ -1,0 +1,119 @@
+/* Sort toggle button styles - Backlog native style integration */
+.sort-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  /* Remove custom padding, let Backlog's filter nav handle spacing */
+}
+
+.sort-toggle-label {
+  font-size: 12px;
+  font-weight: normal;
+  color: #333;
+  white-space: nowrap;
+  /* Match Backlog's native text styling */
+}
+
+.sort-toggle-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.sort-toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 120px;
+  height: 24px;
+  cursor: pointer;
+  /* Smaller, more compact size */
+}
+
+.sort-toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.sort-toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  transition: all 0.2s ease;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  overflow: hidden;
+  /* Backlog-like subtle styling */
+}
+
+.sort-toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 56px;
+  left: 2px;
+  top: 2px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  transition: all 0.2s ease;
+  border-radius: 9px;
+  z-index: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  /* Clean, minimal shadow like Backlog buttons */
+}
+
+.sort-toggle-input:checked + .sort-toggle-slider:before {
+  transform: translateX(56px);
+}
+
+.sort-toggle-option {
+  position: relative;
+  font-size: 11px;
+  font-weight: normal;
+  padding: 0 6px;
+  z-index: 2;
+  transition: color 0.2s ease;
+  white-space: nowrap;
+  color: #666;
+  /* Consistent with Backlog's subtle text colors */
+}
+
+.sort-toggle-option--left {
+  color: #333;
+}
+
+.sort-toggle-option--right {
+  color: #666;
+}
+
+.sort-toggle-input:checked + .sort-toggle-slider .sort-toggle-option--left {
+  color: #666;
+}
+
+.sort-toggle-input:checked + .sort-toggle-slider .sort-toggle-option--right {
+  color: #333;
+}
+
+/* Subtle hover effects matching Backlog's interaction style */
+.sort-toggle-switch:hover .sort-toggle-slider {
+  border-color: #bbb;
+}
+
+.sort-toggle-switch:hover .sort-toggle-slider:before {
+  border-color: #ccc;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* Remove focus outline for cleaner appearance */
+.sort-toggle-input:focus + .sort-toggle-slider {
+  outline: none;
+}
+
+/* No custom animations to match Backlog's conservative style */
