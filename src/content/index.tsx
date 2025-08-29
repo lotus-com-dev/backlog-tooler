@@ -208,15 +208,15 @@ function addSortToggleButtonAndExpand(filterNav: HTMLDListElement): void {
     return timeElement ? new Date(timeElement.textContent?.trim() || '').getTime() : 0;
   };
   
-  let currentSortOrder: SortOrder = SORT_ORDERS.DESC;
+  let currentSortOrder: SortOrder = SORT_ORDERS.ASC;
   const initialComments = Array.from(commentList.querySelectorAll<CommentItem>(DOM_SELECTORS.COMMENT_ITEM));
   
   if (initialComments.length >= 2) {
     const firstCommentTime = getTimestamp(initialComments[0]);
     const lastCommentTime = getTimestamp(initialComments[initialComments.length - 1]);
     
-    if (firstCommentTime < lastCommentTime) {
-      currentSortOrder = SORT_ORDERS.ASC;
+    if (firstCommentTime > lastCommentTime) {
+      currentSortOrder = SORT_ORDERS.DESC;
     }
   }
   
