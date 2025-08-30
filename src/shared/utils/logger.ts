@@ -76,9 +76,8 @@ export const createLogger = (prefix: string, minLevel: LogLevel = LogLevel.DEBUG
   });
 };
 
-// Component-specific loggers
+// Core system loggers
 export const contentLogger = createLogger('[ContentScript]');
-export const featureLogger = createLogger('[CommentSorterFeature]');
 export const backgroundLogger = createLogger('[Background]');
 export const registryLogger = createLogger('[FeatureRegistry]');
 export const managerLogger = createLogger('[FeatureManager]');

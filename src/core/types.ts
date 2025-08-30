@@ -1,3 +1,5 @@
+import { createLogger, LogLevel } from '../shared/utils/logger';
+
 export interface FeatureConfig {
   id: string;
   name: string;
@@ -37,10 +39,18 @@ export interface PageContext {
   isIframeContext(): boolean;
 }
 
+export interface Logger {
+  debug(message: string, ...args: unknown[]): void;
+  info(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
+}
+
 export abstract class BaseFeature {
   protected config: FeatureConfig;
   protected context: FeatureContext;
   protected pageContext: PageContext;
+  protected logger: Logger;
   protected isInitialized = false;
 
   constructor(
@@ -51,6 +61,7 @@ export abstract class BaseFeature {
     this.config = config;
     this.context = context;
     this.pageContext = pageContext;
+    this.logger = createLogger(`[${config.name}]`, LogLevel.DEBUG);
   }
 
   abstract initialize(): Promise<void>;

@@ -7,8 +7,7 @@ import {
   SORT_ORDERS,
   TIMING,
   POST_MESSAGE_TYPES,
-  URL_PATTERNS,
-  featureLogger
+  URL_PATTERNS
 } from '@/shared';
 import type { SortOrder } from '@/shared';
 import { SortToggleButton } from '@/ui/components';
@@ -56,11 +55,11 @@ export class CommentSorterFeature extends BaseFeature {
 
   async initialize(): Promise<void> {
     if (this.isInitialized) {
-      featureLogger.debug('Already initialized');
+      this.logger.debug('Already initialized');
       return;
     }
 
-    featureLogger.info('Initializing comment sorter');
+    this.logger.info('Initializing comment sorter');
 
     // Initialize based on context
     if (this.pageContext.isViewPage() && !this.pageContext.isIframeContext()) {
@@ -90,7 +89,7 @@ export class CommentSorterFeature extends BaseFeature {
   }
 
   cleanup(): void {
-    featureLogger.debug('Starting cleanup');
+    this.logger.debug('Starting cleanup');
 
     // Clean up board-specific resources
     this.cleanupBoardObserver();
@@ -99,9 +98,9 @@ export class CommentSorterFeature extends BaseFeature {
     if (this.reactRoot) {
       try {
         this.reactRoot.unmount();
-        featureLogger.debug('React root unmounted');
+        this.logger.debug('React root unmounted');
       } catch (error) {
-        featureLogger.warn('Failed to unmount React root:', error);
+        this.logger.warn('Failed to unmount React root:', error);
       }
       this.reactRoot = null;
     }
@@ -115,7 +114,7 @@ export class CommentSorterFeature extends BaseFeature {
         this.initializationObserver.disconnect();
         this.context.resourceTracker.untrackObserver(this.initializationObserver);
       } catch (error) {
-        featureLogger.warn('Failed to disconnect initialization observer:', error);
+        this.logger.warn('Failed to disconnect initialization observer:', error);
       }
       this.initializationObserver = null;
     }
@@ -129,7 +128,7 @@ export class CommentSorterFeature extends BaseFeature {
             observer.disconnect();
             this.context.resourceTracker.untrackObserver(observer);
           } catch (error) {
-            featureLogger.warn('Failed to disconnect observer:', error);
+            this.logger.warn('Failed to disconnect observer:', error);
           }
         });
         this.observerMap.delete(this.sortButtonElement);
@@ -142,7 +141,7 @@ export class CommentSorterFeature extends BaseFeature {
         try {
           commentList.removeEventListener('click', this.handleDelegatedClick);
         } catch (error) {
-          featureLogger.warn('Failed to remove event listener:', error);
+          this.logger.warn('Failed to remove event listener:', error);
         }
       }
 
@@ -154,15 +153,15 @@ export class CommentSorterFeature extends BaseFeature {
       try {
         this.sortButtonElement.remove();
         this.context.resourceTracker.untrackElement(this.sortButtonElement);
-        featureLogger.debug('Sort button element removed');
+        this.logger.debug('Sort button element removed');
       } catch (error) {
-        featureLogger.warn('Failed to remove sort button element:', error);
+        this.logger.warn('Failed to remove sort button element:', error);
       }
       this.sortButtonElement = null;
     }
 
     this.setInitialized(false);
-    featureLogger.debug('Cleanup completed');
+    this.logger.debug('Cleanup completed');
   }
 
   private cleanupBoardObserver(): void {
@@ -171,7 +170,7 @@ export class CommentSorterFeature extends BaseFeature {
         this.boardObserver.disconnect();
         this.context.resourceTracker.untrackObserver(this.boardObserver);
       } catch (error) {
-        featureLogger.warn('Failed to disconnect board observer:', error);
+        this.logger.warn('Failed to disconnect board observer:', error);
       }
       this.boardObserver = null;
     }
@@ -294,7 +293,7 @@ export class CommentSorterFeature extends BaseFeature {
     // Enhanced cleanup: Remove all existing sort buttons to prevent duplicates
     const existingButtons = document.querySelectorAll(`#${DOM_IDS.SORT_TOGGLE_BUTTON}`);
     if (existingButtons.length > 0) {
-      featureLogger.debug(`Found ${existingButtons.length} existing buttons, removing`);
+      this.logger.debug(`Found ${existingButtons.length} existing buttons, removing`);
       existingButtons.forEach(button => {
         // Remove the parent dd element if it exists
         const parentDd = button.closest('dd');
@@ -308,7 +307,7 @@ export class CommentSorterFeature extends BaseFeature {
 
     // Also cleanup if sortButtonElement exists
     if (this.sortButtonElement) {
-      featureLogger.debug('Cleaning up existing sortButtonElement');
+      this.logger.debug('Cleaning up existing sortButtonElement');
       this.cleanup();
     }
 
@@ -401,7 +400,7 @@ export class CommentSorterFeature extends BaseFeature {
     const existingContainers = filterNav.querySelectorAll('dd');
     existingContainers.forEach(dd => {
       if (dd.querySelector(`#${DOM_IDS.SORT_TOGGLE_BUTTON}`)) {
-        featureLogger.debug('Removing existing sort button container');
+        this.logger.debug('Removing existing sort button container');
         dd.remove();
       }
     });
@@ -409,7 +408,7 @@ export class CommentSorterFeature extends BaseFeature {
     // Also check globally for any stray buttons
     const globalExistingButtons = document.querySelectorAll(`#${DOM_IDS.SORT_TOGGLE_BUTTON}`);
     if (globalExistingButtons.length > 0) {
-      featureLogger.debug(`Found ${globalExistingButtons.length} stray buttons, removing`);
+      this.logger.debug(`Found ${globalExistingButtons.length} stray buttons, removing`);
       globalExistingButtons.forEach(button => {
         const parentDd = button.closest('dd');
         if (parentDd) {
@@ -422,7 +421,7 @@ export class CommentSorterFeature extends BaseFeature {
 
     // Cleanup if sortButtonElement exists
     if (this.sortButtonElement) {
-      featureLogger.debug('Cleaning up before creating new button');
+      this.logger.debug('Cleaning up before creating new button');
       this.cleanup();
     }
 
@@ -431,7 +430,7 @@ export class CommentSorterFeature extends BaseFeature {
 
     // Final check before creating new button
     if (document.getElementById(DOM_IDS.SORT_TOGGLE_BUTTON)) {
-      featureLogger.warn('Sort button still exists after cleanup, aborting');
+      this.logger.warn('Sort button still exists after cleanup, aborting');
       return;
     }
 
