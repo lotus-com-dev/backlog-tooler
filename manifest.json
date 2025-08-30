@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
-    "name": "Backlog Comment Sorter",
-    "version": "2.0",
-    "description": "Backlogの課題ページにコメントのソート切り替えボタンを自動で追加します。",
+    "name": "Backlog Tooler",
+    "version": "3.0.0",
+    "description": "Backlogの生産性を向上させる拡張可能なツーラープラットフォーム。コメントソート機能を搭載。",
     "permissions": [
         "storage",
         "tabs",
@@ -15,7 +15,7 @@
     },
     "action": {
         "default_popup": "src/ui/popup/popup.html",
-        "default_title": "Backlog Comment Sorter",
+        "default_title": "Backlog Tooler",
         "default_icon": {
             "16": "icon-16.png",
             "48": "icon-48.png",

@@ -5,15 +5,45 @@ import {
   DOMAIN_PATTERNS,
   URL_PATTERNS,
   RESPONSE_KEYS,
-  TIMING
+  TIMING,
+  FRAME_IDS
 } from '@/shared';
+import type { StorageData, FeatureSettings } from '@/shared';
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.sync.get([STORAGE_KEYS.ENABLED], (result) => {
+// Initialize default storage data with feature support
+function initializeDefaultStorage(): void {
+  chrome.storage.sync.get([STORAGE_KEYS.ENABLED, 'features'], (result) => {
+    const updates: Partial<StorageData> = {};
+
+    // Initialize global enabled flag if not set
     if (result[STORAGE_KEYS.ENABLED] === undefined) {
-      chrome.storage.sync.set({ [STORAGE_KEYS.ENABLED]: DEFAULT_SETTINGS.ENABLED });
+      updates.enabled = DEFAULT_SETTINGS.ENABLED;
+    }
+
+    // Initialize features settings if not set
+    if (result.features === undefined) {
+      const defaultFeatures: FeatureSettings = {
+        'comment-sorter': {
+          enabled: true,
+          config: {
+            initialSortOrder: 'asc',
+            enableTimestampCache: true,
+            updateDebounceMs: TIMING.UPDATE_DEBOUNCE
+          }
+        }
+      };
+      updates.features = defaultFeatures;
+    }
+
+    // Save updates if any
+    if (Object.keys(updates).length > 0) {
+      chrome.storage.sync.set(updates);
     }
   });
+}
+
+chrome.runtime.onInstalled.addListener(() => {
+  initializeDefaultStorage();
 });
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
@@ -27,6 +57,56 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     });
     return true;
   }
+
+  // Get all storage data (including features)
+  if (request.action === 'GET_STORAGE_DATA') {
+    chrome.storage.sync.get(null, (result) => {
+      const storageData: StorageData = {
+        enabled: result[STORAGE_KEYS.ENABLED] ?? DEFAULT_SETTINGS.ENABLED,
+        features: result.features ?? {}
+      };
+      sendResponse({ data: storageData });
+    });
+    return true;
+  }
+
+  // Update feature settings
+  if (request.action === 'UPDATE_FEATURE_SETTINGS') {
+    const { featureId, settings } = request;
+    if (!featureId || !settings) {
+      sendResponse({ success: false, error: 'Invalid parameters' });
+      return true;
+    }
+
+    chrome.storage.sync.get(['features'], (result) => {
+      const currentFeatures = result.features || {};
+      const updatedFeatures = {
+        ...currentFeatures,
+        [featureId]: settings
+      };
+
+      chrome.storage.sync.set({ features: updatedFeatures }, () => {
+        if (chrome.runtime.lastError) {
+          sendResponse({ success: false, error: chrome.runtime.lastError.message });
+        } else {
+          sendResponse({ success: true });
+        }
+      });
+    });
+    return true;
+  }
+
+  // Get feature settings
+  if (request.action === 'GET_FEATURE_SETTINGS') {
+    const { featureId } = request;
+    chrome.storage.sync.get(['features'], (result) => {
+      const features = result.features || {};
+      const featureSettings = features[featureId];
+      sendResponse({ settings: featureSettings });
+    });
+    return true;
+  }
+
   return false;
 });
 
@@ -46,7 +126,7 @@ async function sendMessageWithRetry(tabId: number, message: object, maxRetries: 
       }
       
       // Wait before retrying (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, TIMING.MESSAGE_RETRY_BASE_DELAY * Math.pow(2, attempt)));
+      await new Promise(resolve => setTimeout(resolve, TIMING.MESSAGE_RETRY_BASE_DELAY * Math.pow(TIMING.EXPONENTIAL_BACKOFF_BASE, attempt)));
     }
   }
 }
@@ -94,7 +174,7 @@ chrome.webNavigation.onHistoryStateUpdated.addListener(async (details) => {
 
 // Also listen for regular navigation
 chrome.webNavigation.onCompleted.addListener(async (details) => {
-  if (details.frameId !== 0) return; // Only handle main frame
+  if (details.frameId !== FRAME_IDS.MAIN_FRAME) return; // Only handle main frame
   
   const url = new URL(details.url);
   const isBacklogDomain = url.hostname.includes(DOMAIN_PATTERNS.BACKLOG_COM) || url.hostname.includes(DOMAIN_PATTERNS.BACKLOG_JP);

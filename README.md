@@ -1,18 +1,34 @@
-# Backlog Comment Sorter
+# Backlog Comment Sorter - 拡張可能なツーラープラットフォーム
 
-Backlogの課題ページにコメントのソート切り替えボタンを追加するChrome拡張機能です。React + Vite + TypeScriptで実装されています。
+Backlogの生産性を向上させる拡張可能なChrome拡張機能プラットフォームです。React + Vite + TypeScriptで実装されています。
+
+> **v3.0 プラグインアーキテクチャ導入**: 機能プラグインシステムによる拡張可能なアーキテクチャへと進化しました。新しいFeatureManager/Registryシステムにより、独立した機能の追加・管理が簡単になりました。
 
 > **v2.0 アーキテクチャ・リファクタリング**: 新しい三層アーキテクチャ（Scripts / UI / Shared）によりプロジェクトが大幅に再構成されました。定数の論理的分離、コンポーネントのコロケーション、型定義の体系化により、保守性とスケーラビリティが大幅に向上しています。
 
 ## 機能
 
+### 現在実装済みの機能
+
+#### 📝 コメントソート機能
 - Backlogの課題ページにトグルスイッチ形式のソート切り替えボタンを自動追加
 - 現在の並び順を自動判別し、トグルスイッチで視覚的に表示
 - ワンクリックでコメントの並び順を「古い順 ⇄ 新しい順」で切り替え可能
 - 過去のコメントがある場合は自動的に展開
 - **ボードページ対応**: ボードページのモーダル内でも動作
 - **iframe対応**: モーダル表示されるviewページ内でソート機能を提供
+
+### プラットフォーム機能
+
+#### 🔌 プラグインアーキテクチャ
+- **Feature Manager**: 機能の動的な登録・管理・有効化/無効化
+- **Feature Registry**: プラグイン機能のレジストリ管理
+- **リソーストラッカー**: メモリリークを防ぐ自動リソース管理
+- **独立した機能開発**: 各機能が独立したプラグインとして開発可能
+
+#### ⚙️ 拡張機能管理
 - 拡張機能のオン/オフ切り替え機能（ポップアップUI）
+- 機能ごとの個別設定サポート
 - 設定の永続保存（Chrome Storage API）
 - リロード不要で即座に反映される動的な有効/無効切り替え
 - Chrome、Microsoft Edgeなど、Chromiumベースのブラウザで動作
@@ -111,18 +127,29 @@ npm run preview
 
 ## プロジェクト構成
 
-新しいアーキテクチャでは、責務の明確な分離と保守性の向上を実現しています：
+プラグインアーキテクチャを採用した拡張可能な構造：
 
 ```
 backlog-comment-sorter/
 ├── src/
+│   ├── core/                 # コア機能管理システム（v3.0新規）
+│   │   ├── feature-manager.ts    # 機能の登録・管理・有効化
+│   │   ├── feature-registry.ts   # 機能レジストリ
+│   │   ├── types.ts             # コア型定義（BaseFeature等）
+│   │   └── index.ts             # コアエクスポート
+│   ├── features/             # 機能プラグイン（v3.0新規）
+│   │   ├── comment-sorter/       # コメントソート機能
+│   │   │   ├── comment-sorter-feature.tsx  # 機能実装
+│   │   │   ├── types.ts                   # 機能固有の型
+│   │   │   └── index.ts                   # エクスポート
+│   │   └── index.ts              # 機能一括エクスポート
 │   ├── scripts/              # Chrome拡張スクリプト
-│   │   ├── background.ts     # Service Worker（バックグラウンド処理）
-│   │   └── content.tsx       # Content Script（コメントソート機能）
+│   │   ├── background.ts     # Service Worker（機能別設定対応）
+│   │   └── content.tsx       # Content Script（FeatureManager統合）
 │   ├── ui/                   # UI関連の統合
 │   │   ├── popup/            # 拡張機能設定UI
 │   │   │   ├── popup.tsx     # メインコンポーネント
-│   │   │   ├── index.ts      # エントリーポイント
+│   │   │   ├── index.tsx     # エントリーポイント
 │   │   │   ├── popup.html    # HTML構造
 │   │   │   └── popup.css     # UIスタイル
 │   │   └── components/       # UIコンポーネント
@@ -139,10 +166,9 @@ backlog-comment-sorter/
 │   │   │   ├── ui.ts        # UI関連定数
 │   │   │   └── index.ts     # 一括エクスポート
 │   │   ├── types/          # 型定義の統合
-│   │   │   ├── extension.ts # 拡張機能固有の型
+│   │   │   ├── extension.ts # 拡張機能固有の型（FeatureSettings追加）
 │   │   │   ├── ui.ts        # UI関連の型
 │   │   │   └── index.ts     # 型定義エクスポート
-│   │   ├── utils/          # ユーティリティ（将来用）
 │   │   └── index.ts        # 共有リソース一括エクスポート
 │   └── vite-env.d.ts       # Vite環境型定義
 ├── manifest.json           # Chrome拡張機能マニフェスト
@@ -152,13 +178,24 @@ backlog-comment-sorter/
 ├── tsconfig.node.json      # Node.js用TypeScript設定
 ├── eslint.config.js        # ESLint設定
 ├── package.json            # プロジェクト設定と依存関係
+├── CLAUDE.md              # Claude Code用ガイドライン
 ├── .gitignore             # Git除外ファイル
 └── README.md              # このファイル
 ```
 
 ### アーキテクチャの改善点
 
-#### 1. 責務の明確な分離
+#### 1. プラグインアーキテクチャ（v3.0新規）
+- **core/**: 機能管理の中枢システム
+  - `FeatureManager`: 機能の動的な登録・管理
+  - `FeatureRegistry`: 機能のレジストリ管理
+  - `BaseFeature`: 全機能が継承する抽象基底クラス
+- **features/**: 独立した機能プラグイン
+  - 各機能が独立したディレクトリとして実装
+  - 機能間の依存関係を最小限に
+  - 新機能の追加が簡単
+
+#### 2. 責務の明確な分離
 - **scripts/**: Chrome拡張機能のコア機能（background, content script）
 - **ui/**: ユーザーインターフェース関連のすべて
 - **shared/**: プロジェクト全体で共有されるリソース
@@ -343,6 +380,175 @@ UI更新処理において、React componentsの効率的な状態管理を実�
 - **ユーザー体験**: より滑らかで応答性の高いボタン操作を実現
 
 この最適化により、ソートボタンのクリック応答性が大幅に向上し、特に頻繁にソートを切り替える利用シーンでのパフォーマンスが劇的に改善されます。
+
+## 新機能の開発方法
+
+v3.0のプラグインアーキテクチャにより、新しいBacklog支援機能を簡単に追加できます：
+
+### 1. 新機能プラグインの作成
+
+#### ステップ1: 機能ディレクトリの作成
+```bash
+mkdir src/features/your-new-feature
+```
+
+#### ステップ2: 機能クラスの実装
+```typescript
+// src/features/your-new-feature/your-feature.tsx
+import { BaseFeature } from '@/core';
+import type { FeatureConfig, FeatureContext, PageContext } from '@/core';
+
+export class YourNewFeature extends BaseFeature {
+  constructor(
+    featureConfig: FeatureConfig,
+    context: FeatureContext,
+    pageContext: PageContext
+  ) {
+    super(featureConfig, context, pageContext);
+  }
+
+  shouldActivate(): boolean {
+    // この機能がアクティブになる条件を定義
+    return this.pageContext.isViewPage();
+  }
+
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+    
+    console.debug('[YourNewFeature] Initializing...');
+    
+    // 機能の初期化処理
+    // DOM操作、イベントリスナー設定など
+    
+    this.setInitialized(true);
+  }
+
+  cleanup(): void {
+    console.debug('[YourNewFeature] Cleaning up...');
+    
+    // クリーンアップ処理
+    // イベントリスナー削除、DOM要素削除など
+    
+    this.setInitialized(false);
+  }
+}
+```
+
+#### ステップ3: エクスポートファイルの作成
+```typescript
+// src/features/your-new-feature/index.ts
+export { YourNewFeature } from './your-feature.tsx';
+export type * from './types'; // 必要に応じて
+```
+
+### 2. 機能の登録
+
+#### コンテンツスクリプトへの登録
+```typescript
+// src/scripts/content.tsx の initializeFeatureSystem() 内
+const yourNewFeature = new YourNewFeature(
+  {
+    id: 'your-new-feature',
+    name: 'Your New Feature',
+    description: 'Description of your feature',
+    enabled: true,
+    version: '1.0.0'
+  },
+  context,
+  pageContext
+);
+
+featureManager.registerFeature(yourNewFeature);
+```
+
+### 3. 設定の追加（オプション）
+
+#### デフォルト設定の追加
+```typescript
+// src/scripts/background.ts の initializeDefaultStorage() 内
+const defaultFeatures: FeatureSettings = {
+  'comment-sorter': { /* 既存 */ },
+  'your-new-feature': {
+    enabled: true,
+    config: {
+      // 機能固有の設定
+      customOption: 'defaultValue'
+    }
+  }
+};
+```
+
+### 4. 利用可能なユーティリティ
+
+#### リソース管理
+```typescript
+// Observer の追跡
+this.context.resourceTracker.trackObserver(observer);
+
+// タイムアウトの追跡  
+const timeoutId = setTimeout(() => { /* ... */ }, 1000);
+this.context.resourceTracker.trackTimeout(timeoutId);
+
+// DOM要素の追跡
+this.context.resourceTracker.trackElement(element);
+```
+
+#### ページコンテキスト判定
+```typescript
+// 現在のページタイプを判定
+if (this.pageContext.isViewPage()) { /* 課題ページ */ }
+if (this.pageContext.isBoardPage()) { /* ボードページ */ }  
+if (this.pageContext.isIframeContext()) { /* iframe内 */ }
+```
+
+#### 拡張機能状態の確認
+```typescript
+const enabled = await this.context.isExtensionEnabled();
+```
+
+### 5. 機能開発のベストプラクティス
+
+- **リソース管理**: 必ず`cleanup()`でリソースを解放
+- **abort signal**: `this.context.abortController.signal`で中断処理に対応
+- **エラーハンドリング**: try-catch を使った適切なエラー処理
+- **デバッグログ**: 開発時のデバッグ情報を出力
+- **型安全**: TypeScriptの型定義を活用
+
+### 6. テスト
+
+```bash
+npm run build
+npm run lint
+```
+
+新機能を追加した後は、Chrome拡張機能として読み込んでBacklogページで動作確認してください。
+
+## v3.0での重要な修正事項
+
+### 🔧 ソートボタン重複問題の解決
+
+view画面で更新時にソートボタンが2つ表示される問題を完全に解決しました：
+
+#### 修正内容
+1. **初期化前のクリーンアップ強化**
+   - `initializeFeatureSystem()`呼び出し前に既存のFeatureManagerを確実にクリーンアップ
+   - ページ更新時の重複インスタンス作成を防止
+
+2. **既存ボタン検出の強化**
+   - DOM全体から既存ソートボタンを検索・削除
+   - 親要素（`dd`タグ）ごと削除することで完全なクリーンアップを実現
+
+3. **多重防御システム**
+   - ボタン作成前の最終チェックを追加
+   - `data-backlog-sorter`属性による拡張機能要素の識別
+   - 複数のチェックポイントで重複を確実に防止
+
+#### 対策の効果
+- ✅ **ページ更新時**: 既存のFeatureManagerがクリーンアップされるため重複しない
+- ✅ **SPA遷移時**: 既存ボタンが確実に削除されてから新規作成
+- ✅ **エラー耐性**: 複数のチェックポイントで重複を防止
+
+この修正により、どのような状況でもソートボタンが1つだけ表示されることが保証されます。
 
 ### ボードページ・iframe対応の技術詳細
 

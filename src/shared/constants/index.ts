@@ -9,3 +9,6 @@ export * from '@/shared/constants/dom';
 
 // UI-related constants
 export * from '@/shared/constants/ui';
+
+// System-level constants
+export * from '@/shared/constants/system';
