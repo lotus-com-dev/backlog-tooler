@@ -2,18 +2,18 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   MESSAGE_ACTIONS,
+  POST_MESSAGE_TYPES,
   DOM_SELECTORS,
   DOM_IDS,
   DOM_CLASSES,
-  SORT_ORDERS,
   URL_PATTERNS,
-  TIMING,
-  RESPONSE_KEYS,
   OBSERVER_NAMES,
-  POST_MESSAGE_TYPES
-} from '@/constants';
-import type { SortOrder } from '@/constants';
-import { SortToggleButton, type SortToggleButtonRef } from '@/components/SortToggleButton';
+  SORT_ORDERS,
+  TIMING
+} from '@/shared';
+import type { SortOrder } from '@/shared';
+import { SortToggleButton } from '@/ui/components';
+import type { SortToggleButtonRef } from '@/ui/components';
 
 interface CommentItem extends HTMLLIElement {
   querySelector(selector: typeof DOM_SELECTORS.TIME_ELEMENT): HTMLAnchorElement | null;
@@ -108,13 +108,11 @@ async function isExtensionEnabled(): Promise<boolean> {
       if (chrome.runtime.lastError) {
         resolve(true);
       } else {
-        resolve(response?.[RESPONSE_KEYS.ENABLED] ?? true);
+        resolve(response?.enabled ?? true);
       }
     });
   });
 }
-
-
 
 function cleanupSortButton(): void {
   console.debug('[BacklogCommentSorter] Starting cleanup, active resources:', resourceTracker.getActiveResourcesCount());
@@ -662,21 +660,21 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     } else {
       cleanupSortButton();
     }
-    sendResponse({ [RESPONSE_KEYS.SUCCESS]: true });
+    sendResponse({ success: true });
     return true;
   }
   
   if (request.action === MESSAGE_ACTIONS.NAVIGATION_TO_VIEW) {
     // Navigated to a view page, initialize the button
     initializeSortButton();
-    sendResponse({ [RESPONSE_KEYS.SUCCESS]: true });
+    sendResponse({ success: true });
     return true;
   }
   
   if (request.action === MESSAGE_ACTIONS.NAVIGATION_FROM_VIEW) {
     // Navigated away from a view page, clean up
     cleanupSortButton();
-    sendResponse({ [RESPONSE_KEYS.SUCCESS]: true });
+    sendResponse({ success: true });
     return true;
   }
   
@@ -685,7 +683,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     // Clean up the old button and initialize for the new page
     cleanupSortButton();
     initializeSortButton();
-    sendResponse({ [RESPONSE_KEYS.SUCCESS]: true });
+    sendResponse({ success: true });
     return true;
   }
   

@@ -1,14 +1,6 @@
 import React, { useState, useCallback, useImperativeHandle } from 'react';
-import './SortToggleButton.css';
-
-export interface SortToggleButtonRef {
-  updateSortOrder: (isAscending: boolean) => void;
-}
-
-interface SortToggleButtonProps {
-  onToggle: () => void;
-  initialSortOrder: boolean;
-}
+import type { SortToggleButtonRef, SortToggleButtonProps } from '@/ui/components/sort-toggle-button/types';
+import '@/ui/components/sort-toggle-button/styles.css';
 
 export const SortToggleButton = React.forwardRef<SortToggleButtonRef, SortToggleButtonProps>(
   ({ onToggle, initialSortOrder }, ref) => {

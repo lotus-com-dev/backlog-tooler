@@ -6,7 +6,7 @@ import {
   URL_PATTERNS,
   RESPONSE_KEYS,
   TIMING
-} from '@/constants';
+} from '@/shared';
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.sync.get([STORAGE_KEYS.ENABLED], (result) => {

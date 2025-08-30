@@ -14,7 +14,7 @@
         "128": "icon-128.png"
     },
     "action": {
-        "default_popup": "src/popup/popup.html",
+        "default_popup": "src/ui/popup/popup.html",
         "default_title": "Backlog Comment Sorter",
         "default_icon": {
             "16": "icon-16.png",
@@ -23,7 +23,7 @@
         }
     },
     "background": {
-        "service_worker": "src/background/index.tsx",
+        "service_worker": "src/scripts/background.ts",
         "type": "module"
     },
     "content_scripts": [
@@ -33,7 +33,7 @@
                 "https://*.backlog.jp/*"
             ],
             "js": [
-                "src/content/index.tsx"
+                "src/scripts/content.tsx"
             ],
             "run_at": "document_idle",
             "all_frames": true

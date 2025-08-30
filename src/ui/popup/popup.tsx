@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import ReactDOM from 'react-dom/client';
-import './popup.css';
 import {
   STORAGE_KEYS,
   MESSAGE_ACTIONS,
-  STATUS_MESSAGES,
-  URL_PATTERNS
-} from '@/constants';
-import type { StorageData } from '@/constants';
+  URL_PATTERNS,
+  STATUS_MESSAGES
+} from '@/shared';
+import type { StorageData } from '@/shared';
 
 async function getStorageData(): Promise<StorageData> {
   const result = await chrome.storage.sync.get([STORAGE_KEYS.ENABLED]);
@@ -96,6 +94,3 @@ export const PopupComponent: React.FC = () => {
     </div>
   );
 };
-
-const root = ReactDOM.createRoot(document.getElementById('popup-root') as HTMLElement);
-root.render(<PopupComponent />);
