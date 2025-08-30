@@ -284,6 +284,7 @@ async function initializeSortButton(retryCount: number = 0): Promise<void> {
         if (targetElement) {
           if (initializationObserver) {
             initializationObserver.disconnect();
+            resourceTracker.untrackObserver(initializationObserver);
             initializationObserver = null;
           }
           // Use requestAnimationFrame to ensure DOM is ready
