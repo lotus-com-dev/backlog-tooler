@@ -12,6 +12,11 @@ export const MESSAGE_ACTIONS = {
   NAVIGATION_VIEW_TO_VIEW: 'navigationViewToView'
 } as const;
 
+// Post message types
+export const POST_MESSAGE_TYPES = {
+  INIT_SORT_BUTTON: 'INIT_SORT_BUTTON'
+} as const;
+
 // Default settings
 export const DEFAULT_SETTINGS = {
   ENABLED: true
@@ -27,7 +32,8 @@ export const STATUS_MESSAGES = {
 export const URL_PATTERNS = {
   BACKLOG_COM: '.backlog.com/view/',
   BACKLOG_JP: '.backlog.jp/view/',
-  VIEW_PATH: '/view/'
+  VIEW_PATH: '/view/',
+  BOARD_PATH: '/board'
 } as const;
 
 // Domain patterns
@@ -44,7 +50,8 @@ export const DOM_SELECTORS = {
   TIME_ELEMENT: '.user-icon-set__sub-line a',
   BUTTON_TEXT: '.filter-nav__text',
   COLLAPSE_ICON: '.comment-item__collapse-icon',
-  VIEW_OPTIONS_BUTTON: '.comment-list-heading__view-options-button'
+  VIEW_OPTIONS_BUTTON: '.comment-list-heading__view-options-button',
+  ISSUE_DIALOG_IFRAME: '#issue-dialog-iframe'
 } as const;
 
 // DOM IDs

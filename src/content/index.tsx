@@ -9,7 +9,8 @@ import {
   URL_PATTERNS,
   TIMING,
   RESPONSE_KEYS,
-  OBSERVER_NAMES
+  OBSERVER_NAMES,
+  POST_MESSAGE_TYPES
 } from '@/constants';
 import type { SortOrder } from '@/constants';
 import { SortToggleButton, type SortToggleButtonRef } from '@/components/SortToggleButton';
@@ -28,6 +29,8 @@ let initializationObserver: MutationObserver | null = null;
 let reactRoot: ReturnType<typeof createRoot> | null = null;
 let sortButtonRef: React.RefObject<SortToggleButtonRef | null> = React.createRef<SortToggleButtonRef>();
 let abortController: AbortController | null = null;
+let boardObserver: MutationObserver | null = null;
+let iframeLoadTimeoutId: NodeJS.Timeout | null = null;
 
 // WeakMap to manage observers without circular references
 const observerMap = new WeakMap<HTMLElement, MutationObserver[]>();
@@ -122,6 +125,9 @@ function cleanupSortButton(): void {
     abortController = null;
   }
   
+  // Clean up board-specific resources
+  cleanupBoardObserver();
+  
   // Clear all tracked timeouts
   resourceTracker.clearAllTimeouts();
   
@@ -215,6 +221,126 @@ function cleanupSortButton(): void {
 
 function isViewPage(): boolean {
   return window.location.pathname.includes(URL_PATTERNS.VIEW_PATH);
+}
+
+function isBoardPage(): boolean {
+  return window.location.pathname.includes(URL_PATTERNS.BOARD_PATH);
+}
+
+function isIframeContext(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
+function cleanupBoardObserver(): void {
+  if (boardObserver) {
+    try {
+      boardObserver.disconnect();
+      resourceTracker.untrackObserver(boardObserver);
+    } catch (error) {
+      console.warn('[BacklogCommentSorter] Failed to disconnect board observer:', error);
+    }
+    boardObserver = null;
+  }
+  
+  if (iframeLoadTimeoutId) {
+    resourceTracker.clearTimeout(iframeLoadTimeoutId);
+    iframeLoadTimeoutId = null;
+  }
+}
+
+function observeBoardIframe(): void {
+  // If we're already inside an iframe (view page in modal), initialize normally
+  if (isIframeContext() && isViewPage()) {
+    initializeSortButton();
+    return;
+  }
+  
+  // If we're on the board page (parent window), watch for iframe changes
+  if (!isIframeContext() && isBoardPage()) {
+    // Clean up any existing board observer first
+    cleanupBoardObserver();
+    
+    const observeIframeLoad = () => {
+      const iframe = document.querySelector<HTMLIFrameElement>(DOM_SELECTORS.ISSUE_DIALOG_IFRAME);
+      if (!iframe) return;
+
+      let lastProcessedSrc = '';
+      
+      const handleIframeChange = () => {
+        // Debounce rapid changes
+        if (iframeLoadTimeoutId) {
+          resourceTracker.clearTimeout(iframeLoadTimeoutId);
+        }
+        
+        iframeLoadTimeoutId = setTimeout(() => {
+          // Check if src actually changed to avoid duplicate processing
+          if (iframe.src === lastProcessedSrc) return;
+          lastProcessedSrc = iframe.src;
+          
+          if (iframe.src && iframe.src.includes(URL_PATTERNS.VIEW_PATH)) {
+            // Create a single-use load handler to avoid memory leaks
+            const handleLoad = () => {
+              iframe.removeEventListener('load', handleLoad);
+              // Double-check iframe still has the same src
+              if (iframe.src === lastProcessedSrc) {
+                iframe.contentWindow?.postMessage(
+                  { type: POST_MESSAGE_TYPES.INIT_SORT_BUTTON },
+                  '*'
+                );
+              }
+            };
+            
+            // Check if iframe is already loaded
+            if (iframe.contentDocument?.readyState === 'complete') {
+              handleLoad();
+            } else {
+              iframe.addEventListener('load', handleLoad, { once: true });
+            }
+          }
+          iframeLoadTimeoutId = null;
+        }, TIMING.UPDATE_DEBOUNCE);
+        
+        resourceTracker.trackTimeout(iframeLoadTimeoutId);
+      };
+
+      // Listen for iframe src changes
+      boardObserver = new MutationObserver(handleIframeChange);
+      
+      boardObserver.observe(iframe, {
+        attributes: true,
+        attributeFilter: ['src']
+      });
+      
+      // Track observer for cleanup
+      resourceTracker.trackObserver(boardObserver);
+      
+      // Initial check if iframe already has a src
+      handleIframeChange();
+    };
+    
+    // Wait for DOM to be ready then observe
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', observeIframeLoad, { once: true });
+    } else {
+      observeIframeLoad();
+    }
+  }
+}
+
+// Listen for messages from parent window (board page)
+if (isIframeContext()) {
+  window.addEventListener('message', (event) => {
+    if (event.data?.type === POST_MESSAGE_TYPES.INIT_SORT_BUTTON && isViewPage()) {
+      // Delay initialization to ensure DOM is ready
+      setTimeout(() => {
+        initializeSortButton();
+      }, TIMING.UPDATE_DEBOUNCE);
+    }
+  });
 }
 
 async function initializeSortButton(retryCount: number = 0): Promise<void> {
@@ -589,8 +715,14 @@ if (process.env.NODE_ENV === 'development') {
   });
 }
 
-// Initialize AbortController and setup on page load only if we're on a view page
+// Initialize AbortController and setup on page load
 abortController = new AbortController();
-if (isViewPage()) {
+
+// Initialize based on context
+if (isViewPage() && !isIframeContext()) {
+  // Regular view page (not in iframe)
   initializeSortButton();
+} else if (isBoardPage() || (isIframeContext() && isViewPage())) {
+  // Board page or view page inside iframe
+  observeBoardIframe();
 }
