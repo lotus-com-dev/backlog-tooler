@@ -8,9 +8,19 @@
         "tabs",
         "webNavigation"
     ],
+    "icons": {
+        "16": "icon-16.png",
+        "48": "icon-48.png",
+        "128": "icon-128.png"
+    },
     "action": {
         "default_popup": "src/popup/popup.html",
-        "default_title": "Backlog Comment Sorter"
+        "default_title": "Backlog Comment Sorter",
+        "default_icon": {
+            "16": "icon-16.png",
+            "48": "icon-48.png",
+            "128": "icon-128.png"
+        }
     },
     "background": {
         "service_worker": "src/background/index.tsx",
