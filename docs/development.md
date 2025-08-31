@@ -56,8 +56,8 @@ export class YourNewFeature extends BaseFeature {
 #### ステップ3: エクスポートファイルの作成
 ```typescript
 // src/features/your-new-feature/index.ts
-export { YourNewFeature } from './your-feature.tsx';
-export type * from './types'; // 必要に応じて
+export { YourNewFeature } from '@/features/your-new-feature/your-feature.tsx';
+export type * from '@/features/your-new-feature/types'; // 必要に応じて
 ```
 
 ### 2. 機能の登録
