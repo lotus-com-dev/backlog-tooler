@@ -1,5 +1,33 @@
 # アーキテクチャ詳細
 
+## 命名規則
+
+### ファイル・ディレクトリ名
+- **ディレクトリ**: `kebab-case` (例: `comment-sorter`, `task-manager`)
+- **TypeScriptファイル**: `kebab-case` (例: `comment-sorter-feature.tsx`, `feature-manager.ts`)
+- **インデックスファイル**: `index.ts` または `index.tsx`
+
+### コード内の命名
+- **クラス名**: `PascalCase` (例: `CommentSorterFeature`, `FeatureManager`)
+- **機能ID**: `kebab-case` (例: `'comment-sorter'`, `'task-manager'`)
+- **機能表示名**: `Title Case` (例: `'Comment Sorter'`, `'Task Manager'`)
+- **ログプレフィックス**: `[PascalCase]` 空白なし (例: `[CommentSorter]`, `[TaskManager]`)
+
+### 例
+```typescript
+// ファイル: src/features/comment-sorter/comment-sorter-feature.tsx
+export class CommentSorterFeature extends BaseFeature {
+  // クラス名: PascalCase
+}
+
+// 登録時
+{
+  id: 'comment-sorter',        // kebab-case
+  name: 'Comment Sorter',       // Title Case
+  // ログ出力: [CommentSorter]  // PascalCase、空白なし
+}
+```
+
 ## プラグインアーキテクチャ（v3.0新規）
 
 ### コア機能管理システム

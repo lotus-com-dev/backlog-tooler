@@ -8,16 +8,16 @@ v3.0のプラグインアーキテクチャにより、新しいBacklog支援機
 
 #### ステップ1: 機能ディレクトリの作成
 ```bash
-mkdir src/features/your-new-feature
+mkdir src/features/task-manager  # kebab-case ディレクトリ名
 ```
 
 #### ステップ2: 機能クラスの実装
 ```typescript
-// src/features/your-new-feature/your-feature.tsx
+// src/features/task-manager/task-manager-feature.tsx  # kebab-case ファイル名
 import { BaseFeature } from '@/core';
 import type { FeatureConfig, FeatureContext, PageContext } from '@/core';
 
-export class YourNewFeature extends BaseFeature {
+export class TaskManagerFeature extends BaseFeature {  # PascalCase クラス名
   constructor(
     featureConfig: FeatureConfig,
     context: FeatureContext,
@@ -55,9 +55,9 @@ export class YourNewFeature extends BaseFeature {
 
 #### ステップ3: エクスポートファイルの作成
 ```typescript
-// src/features/your-new-feature/index.ts
-export { YourNewFeature } from '@/features/your-new-feature/your-feature.tsx';
-export type * from '@/features/your-new-feature/types'; // 必要に応じて
+// src/features/task-manager/index.ts
+export { TaskManagerFeature } from './task-manager-feature';
+export type * from './types'; // 必要に応じて
 ```
 
 ### 2. 機能の登録
@@ -65,11 +65,11 @@ export type * from '@/features/your-new-feature/types'; // 必要に応じて
 #### コンテンツスクリプトへの登録
 ```typescript
 // src/scripts/content.tsx の initializeFeatureSystem() 内
-const yourNewFeature = new YourNewFeature(
+const taskManagerFeature = new TaskManagerFeature(
   {
-    id: 'your-new-feature',
-    name: 'Your New Feature',
-    description: 'Description of your feature',
+    id: 'task-manager',        // kebab-case ID
+    name: 'Task Manager',       // Title Case 表示名
+    description: 'Manage tasks in Backlog',
     enabled: true,
     version: '1.0.0'
   },
@@ -77,7 +77,8 @@ const yourNewFeature = new YourNewFeature(
   pageContext
 );
 
-featureManager.registerFeature(yourNewFeature);
+featureManager.registerFeature(taskManagerFeature);
+// ログ出力: [TaskManager] ... (PascalCase、空白なし)
 ```
 
 ### 3. 設定の追加（オプション）
@@ -87,11 +88,11 @@ featureManager.registerFeature(yourNewFeature);
 // src/scripts/background.ts の initializeDefaultStorage() 内
 const defaultFeatures: FeatureSettings = {
   'comment-sorter': { /* 既存 */ },
-  'your-new-feature': {
+  'task-manager': {  // kebab-case ID
     enabled: true,
     config: {
       // 機能固有の設定
-      customOption: 'defaultValue'
+      maxTasks: 100
     }
   }
 };
