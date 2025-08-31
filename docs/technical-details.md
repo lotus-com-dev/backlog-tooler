@@ -67,6 +67,77 @@ v2.0で新たに追加されたボードページ対応機能では、以下の�
 - `https://*.backlog.jp/board/*` (ボードページ - モーダル内のviewページ)
 - `https://*.backlog.com/board/*` (ボードページ - モーダル内のviewページ)
 
-**注記**: 拡張機能は全てのBacklogページで読み込まれますが、実際のソート機能は以下の場所で動作します：
-- 課題ページ（URLに`/view/`を含むページ）
-- ボードページのモーダル内に表示される課題ページ
+**注記**: 拡張機能は全てのBacklogページで読み込まれますが、各機能は以下の場所で動作します：
+- **コメントソート機能**: 課題ページ（URLに`/view/`を含むページ）、ボードページのモーダル内
+- **プレビュー表示機能**: 課題追加ページ（URLに`/add/`を含むページ）
+
+## 実装時のトラブルシューティング事例
+
+### ケーススタディ: プレビュー表示機能の実装ミス
+
+#### 発生した問題
+v3.0でプレビュー表示機能を実装した際、課題追加ページで機能が全く動作しない問題が発生。
+
+#### 症状
+- ログが一切出力されない
+- 機能のUIが表示されない  
+- shouldActivate()が呼ばれない
+
+#### 根本原因の分析
+
+**原因1: ページ初期化条件の不備**
+```typescript
+// 問題のあったコード (content.tsx)
+if (pageContext.isViewPage() && !pageContext.isIframeContext()) {
+  initializeFeatureSystem();
+} else if (pageContext.isBoardPage() || ...) {
+  initializeFeatureSystem();
+}
+// 課題追加ページ（/add/*）の条件が存在しない
+```
+
+**原因2: DOMセレクターの不一致**  
+```typescript
+// 定義していたセレクター
+COMMENT_EDITOR_PREVIEW_MENU: '.comment-editor__preview-menu'
+
+// 実際のHTML構造
+<div class="comment-editor__preview-menu js_edit-preview-menu">
+```
+
+#### 修正内容
+
+**修正1: 初期化条件の追加**
+```typescript
+} else if (pageContext.isAddPage()) {
+  // 課題追加ページの初期化条件を追加
+  contentLogger.debug('Initializing for add page');
+  initializeFeatureSystem();
+}
+```
+
+**修正2: セレクターの修正**
+```typescript  
+// 修正後
+COMMENT_EDITOR_PREVIEW_MENU: '.comment-editor__preview-menu.js_edit-preview-menu'
+```
+
+#### 学んだ教訓
+
+1. **新しいページタイプを追加する際の必須手順**
+   - PageContextインターフェースの拡張
+   - URL_PATTERNSへの定数追加
+   - 初期化条件への追加
+   - DOMセレクターの正確な特定
+
+2. **デバッグファーストの開発**
+   - 実装前に基本的なログ出力を確認
+   - 段階的な動作確認を実施
+   - 根本原因から順次調査
+
+3. **既存アーキテクチャの完全理解**
+   - 類似機能の実装方法を詳細に調査
+   - 初期化フローの全体像を把握
+   - 依存関係と前提条件を明確化
+
+この事例により、同様のミスを防ぐための具体的な対策が確立されました。

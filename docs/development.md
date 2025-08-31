@@ -143,10 +143,99 @@ this.logger.error('Error message');
 - **リソース管理**: 必ず`cleanup()`でリソースを解放
 - **abort signal**: `this.context.abortController.signal`で中断処理に対応
 - **エラーハンドリング**: try-catch を使った適切なエラー処理
-- **デバッグログ**: 開発時のデバッグ情報を出力
+- **デバッグログ**: 開発時のデバッグ情報を出力（`console.log`ではなく適切なloggerを使用）
 - **型安全**: TypeScriptの型定義を活用
+- **統一ログ**: `contentLogger`（コンテンツスクリプト）や`this.logger`（機能クラス）を使用
 
-### 6. テスト
+### 6. 新機能開発時の必須チェックリスト
+
+新機能を実装する際は、以下の項目を段階的に確認してください：
+
+#### ステップ1: 基本実行確認
+```typescript
+// コンテンツスクリプトの実行確認
+contentLogger.debug('Script loaded', { url: window.location.href });
+```
+
+- [ ] コンテンツスクリプトがページで実行されているか
+- [ ] manifest.jsonの対象URLパターンに含まれているか  
+- [ ] 基本的なログが出力されるか
+
+#### ステップ2: ページ判定ロジック確認
+- [ ] `pageContext.isXxxPage()` メソッドが正しく動作するか
+- [ ] 初期化条件に新しいページタイプが含まれているか
+- [ ] URL_PATTERNSに適切な定数が追加されているか
+
+#### ステップ3: DOM要素検出
+- [ ] 実際のHTMLからセレクターを正確に特定
+- [ ] DOM要素が存在することを確認
+- [ ] セレクターの大文字小文字やクラス名の組み合わせを確認
+
+#### ステップ4: 段階的実装
+- [ ] 機能を小さな単位に分割
+- [ ] 各段階で動作確認を実施
+- [ ] エラーハンドリングを適切に実装
+
+### 7. よくある実装ミスと対策
+
+#### ページ初期化漏れ
+**症状**: 新しいページタイプで機能が動作しない
+**原因**: content.tsxの初期化条件に追加し忘れ
+**対策**: 
+```typescript
+// content.tsx の最後部分を確認
+if (pageContext.isNewPageType()) {
+  initializeFeatureSystem();
+}
+```
+
+#### DOMセレクター不一致  
+**症状**: DOM要素が見つからないエラー
+**原因**: 実際のHTML構造との相違
+**対策**: 実際のHTMLを確認してセレクターを正確に記述
+
+#### 機能登録漏れ
+**症状**: shouldActivate()が呼ばれない  
+**原因**: FeatureManagerに機能を登録し忘れ
+**対策**: initializeFeatureSystem()内での登録処理を確認
+
+### 8. ログ使用ガイドライン
+
+#### 適切なロガーの使用
+```typescript
+// 避けるべき
+console.log('Debug message');
+
+// 推奨
+// コンテンツスクリプトで
+contentLogger.debug('Debug message');
+
+// 機能クラス内で
+this.logger.debug('Debug message');
+```
+
+#### ログレベルの使い分け
+- **debug**: 詳細なデバッグ情報、開発時のみ
+- **info**: 重要な処理の開始・完了
+- **warn**: 警告、処理は継続可能  
+- **error**: エラー、処理の中断
+
+#### ログ出力例
+```typescript
+// 機能初期化時
+this.logger.info('Feature initialized successfully');
+
+// 条件判定時
+this.logger.debug('Page validation result', { isValid: result });
+
+// 警告時
+this.logger.warn('Element not found, retrying...', { attempt: 3 });
+
+// エラー時  
+this.logger.error('Critical error occurred', error);
+```
+
+### 9. テスト
 
 ```bash
 npm run build
