@@ -1,4 +1,5 @@
 // Centralized logging system
+import { LOG_PREFIXES } from '../constants/system';
 
 export const LogLevel = {
   DEBUG: 0,
@@ -33,11 +34,12 @@ class Logger {
       return level >= LogLevel.WARN; // Only warnings and errors in production
     }
 
+    // In development mode, allow all log levels
     return true;
   }
 
   private formatMessage(level: LogLevel, message: string, ...args: unknown[]): [string, ...unknown[]] {
-    const timestamp = new Date().toISOString().substr(11, 12);
+    const timestamp = new Date().toISOString().substring(11, 23);
     const levelStr = Object.keys(LogLevel).find(key => LogLevel[key as keyof typeof LogLevel] === level) || 'UNKNOWN';
     return [`[${timestamp}] [${levelStr}] ${this.config.prefix} ${message}`, ...args];
   }
@@ -77,7 +79,7 @@ export const createLogger = (prefix: string, minLevel: LogLevel = LogLevel.DEBUG
 };
 
 // Core system loggers
-export const contentLogger = createLogger('[ContentScript]');
-export const backgroundLogger = createLogger('[Background]');
-export const registryLogger = createLogger('[FeatureRegistry]');
-export const managerLogger = createLogger('[FeatureManager]');
+export const contentLogger = createLogger(LOG_PREFIXES.CONTENT_SCRIPT);
+export const backgroundLogger = createLogger(LOG_PREFIXES.BACKGROUND);
+export const registryLogger = createLogger(LOG_PREFIXES.FEATURE_REGISTRY);
+export const managerLogger = createLogger(LOG_PREFIXES.FEATURE_MANAGER);

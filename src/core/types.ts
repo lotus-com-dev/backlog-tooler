@@ -61,7 +61,7 @@ export abstract class BaseFeature {
     this.config = config;
     this.context = context;
     this.pageContext = pageContext;
-    this.logger = createLogger(`[${config.name}]`, LogLevel.DEBUG);
+    this.logger = createLogger(`[${config.name.replace(/\s+/g, '')}]`, LogLevel.DEBUG);
   }
 
   abstract initialize(): Promise<void>;

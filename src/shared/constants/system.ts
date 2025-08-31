@@ -15,3 +15,11 @@ export const NODE_ENV = {
   DEVELOPMENT: 'development',
   PRODUCTION: 'production'
 } as const;
+
+// Logger prefix constants
+export const LOG_PREFIXES = {
+  CONTENT_SCRIPT: '[ContentScript]',
+  BACKGROUND: '[Background]',
+  FEATURE_REGISTRY: '[FeatureRegistry]',
+  FEATURE_MANAGER: '[FeatureManager]',
+} as const;
