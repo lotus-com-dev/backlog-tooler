@@ -37,6 +37,7 @@ export interface PageContext {
   isViewPage(): boolean;
   isBoardPage(): boolean;
   isIframeContext(): boolean;
+  isAddPage(): boolean;
 }
 
 export interface Logger {

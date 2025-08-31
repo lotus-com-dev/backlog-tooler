@@ -3,7 +3,8 @@ export const URL_PATTERNS = {
   BACKLOG_COM: '.backlog.com/view/',
   BACKLOG_JP: '.backlog.jp/view/',
   VIEW_PATH: '/view/',
-  BOARD_PATH: '/board'
+  BOARD_PATH: '/board',
+  ADD_PATH: '/add/'
 } as const;
 
 // Domain patterns
@@ -21,7 +22,12 @@ export const DOM_SELECTORS = {
   BUTTON_TEXT: '.filter-nav__text',
   COLLAPSE_ICON: '.comment-item__collapse-icon',
   VIEW_OPTIONS_BUTTON: '.comment-list-heading__view-options-button',
-  ISSUE_DIALOG_IFRAME: '#issue-dialog-iframe'
+  ISSUE_DIALOG_IFRAME: '#issue-dialog-iframe',
+  COMMENT_EDITOR_WRAPPER: '.comment-editor__input-wrapper',
+  COMMENT_EDITOR_PREVIEW_WRAPPER: '.comment-editor__preview-wrapper',
+  COMMENT_EDITOR_PREVIEW_CONTENT: '.comment-editor__preview-content.js_previewArea',
+  COMMENT_EDITOR_TEXTAREA: '.comment-editor__textarea.ProseMirror',
+  COMMENT_EDITOR_ACTION_WRAPPER: '.comment-editor__action-wrapper'
 } as const;
 
 // DOM IDs

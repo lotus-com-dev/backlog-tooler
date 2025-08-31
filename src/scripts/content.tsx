@@ -7,7 +7,7 @@ import {
 } from '@/shared';
 import { FeatureManager } from '@/core';
 import type { FeatureContext, PageContext, ResourceTracker } from '@/core';
-import { CommentSorterFeature } from '@/features';
+import { CommentSorterFeature, PreviewSplitterFeature } from '@/features';
 
 // Resource tracking for debugging (only in development)
 const resourceTracker: ResourceTracker = {
@@ -70,6 +70,10 @@ const pageContext: PageContext = {
     } catch {
       return true;
     }
+  },
+
+  isAddPage(): boolean {
+    return window.location.pathname.includes(URL_PATTERNS.ADD_PATH);
   }
 };
 
@@ -129,6 +133,21 @@ async function initializeFeatureSystem(): Promise<void> {
   );
 
   featureManager.registerFeature(commentSorterFeature);
+
+  // Register preview splitter feature
+  const previewSplitterFeature = new PreviewSplitterFeature(
+    {
+      id: 'preview-splitter',
+      name: 'Preview Splitter',
+      description: 'Split view for real-time preview on add page',
+      enabled: true,
+      version: '1.0.0'
+    },
+    context,
+    pageContext
+  );
+
+  featureManager.registerFeature(previewSplitterFeature);
 
   // Initialize all features
   await featureManager.initializeAllFeatures();
@@ -243,5 +262,9 @@ if (pageContext.isViewPage() && !pageContext.isIframeContext()) {
   initializeFeatureSystem();
 } else if (pageContext.isBoardPage() || (pageContext.isIframeContext() && pageContext.isViewPage())) {
   // Board page or view page inside iframe
+  initializeFeatureSystem();
+} else if (pageContext.isAddPage()) {
+  // Issue creation page
+  contentLogger.debug('Initializing for add page');
   initializeFeatureSystem();
 }

@@ -1,0 +1,1 @@
+export { PreviewSplitterFeature } from './preview-splitter-feature';
