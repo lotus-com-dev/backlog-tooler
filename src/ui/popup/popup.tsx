@@ -75,7 +75,7 @@ export const PopupComponent: React.FC = () => {
   return (
     <div className="popup-container">
       <div className="header">
-        <h2>Backlog Comment Sorter</h2>
+        <h2>Backlog Tooler</h2>
       </div>
       <div className="toggle-section">
         <label className="toggle-label">
