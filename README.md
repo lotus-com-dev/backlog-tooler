@@ -1,4 +1,4 @@
-# Backlog Tooler
+# Backlog Tools
 
 Backlogの生産性を向上させる拡張可能なChrome拡張機能プラットフォームです。React + Vite + TypeScriptで実装されています。
 
@@ -29,8 +29,8 @@ Backlogの生産性を向上させる拡張可能なChrome拡張機能プラッ�
 
 1. リポジトリをクローン
 ```bash
-git clone https://github.com/yourusername/backlog-tooler.git
-cd backlog-tooler
+git clone https://github.com/yourusername/backlog-tools.git
+cd backlog-tools
 ```
 
 2. 依存関係をインストール
@@ -73,7 +73,7 @@ npm run build
 ## プロジェクト構成
 
 ```
-backlog-tooler/
+backlog-tools/
 ├── src/
 │   ├── core/                 # コア機能管理システム
 │   │   ├── feature-manager.ts
