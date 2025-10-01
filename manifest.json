@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Backlog Tooler",
+    "name": "Backlog Tools",
     "version": "3.0.1",
     "description": "Backlogの生産性を向上させる拡張可能なツーラープラットフォーム。コメントソート機能を搭載。",
     "permissions": [
@@ -20,7 +20,7 @@
     },
     "action": {
         "default_popup": "src/ui/popup/popup.html",
-        "default_title": "Backlog Tooler",
+        "default_title": "Backlog Tools",
         "default_icon": {
             "16": "icon-16.png",
             "48": "icon-48.png",
