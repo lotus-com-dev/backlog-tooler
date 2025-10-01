@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Backlog Tools",
-    "version": "3.0.2",
+    "version": "3.0.3",
     "description": "Backlogの生産性を向上させる拡張可能なツーラープラットフォーム。コメントソート機能を搭載。",
     "permissions": [
         "storage",
